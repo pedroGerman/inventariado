@@ -1,26 +1,292 @@
-@import "tailwindcss";
+@import "./fluid-surfaces.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: oklch(0.967 0 0);
+  --foreground: #0f172a;
+  --primary: #22c55e;
+  --danger: #ef4444;
+  --warning: #f97316;
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.141 0 0);
+  --muted-foreground: oklch(0.552 0 0);
+  --surface-0: oklch(0.967 0 0);
+  --surface-2: oklch(0.922 0 0 / 0.4);
+  --surface-3: oklch(0.98 0 0);
+  --border: oklch(0.92 0 0);
+  --card-edge-shadow:
+    inset 0 1px 0 0 rgb(255 255 255), 0 0 0 1px rgb(0 0 0 / 0.04),
+    0 1px 2px rgb(0 0 0 / 0.05);
+  --overview-metric-card-shadow:
+    inset 0 1.8px 0 0 rgb(255 255 255), 0 0 0 1px rgb(0 0 0 / 0.04),
+    0 2.5px 1.5px 0px rgb(0 0 0 / 0.04);
+  --segmented-track-shadow:
+    inset 0 1px 2px rgb(0 0 0 / 0.06), 0 0 0 1px rgb(0 0 0 / 0.04);
+  --segmented-thumb-shadow:
+    inset 0 1px 0 0 rgb(255 255 255), 0 0 0 1px rgb(0 0 0 / 0.08),
+    0 1px 2px rgb(0 0 0 / 0.06);
+  --switch-track-off: var(--surface-2);
+  --switch-track-shadow: var(--segmented-track-shadow);
+  --switch-track-on: var(--button-success);
+  --switch-track-on-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.35), 0 0 0 1px rgb(22 163 74 / 0.45),
+    0 1px 2px rgb(12 74 38 / 0.18);
+  --switch-thumb-off-shadow: var(--segmented-thumb-shadow);
+  --switch-thumb-on: #ffffff;
+  --switch-thumb-on-shadow: var(--segmented-thumb-shadow);
+  --input-surface: oklch(0.948 0 0);
+  --input-edge-shadow:
+    inset 0 1px 0 0 rgb(255 255 255), 0 0 0 1px rgb(0 0 0 / 0.04),
+    0 1px 2px rgb(0 0 0 / 0.05);
+
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.967 0 0);
+  --secondary-foreground: oklch(0.21 0 0);
+  --destructive: #d9070d;
+  --accent-foreground: oklch(0.21 0 0);
+  --ring: oklch(0.871 0 0);
+
+  --button-success: #16a34a;
+  --button-success-hover: #1d9047;
+  --button-success-border: #1aac50;
+  --button-success-border-hover: #1d9047;
+  --button-destructive-border: #ff2e35;
+  --button-destructive-border-hover: #b6080e;
+  --button-gold: #f2c214;
+  --button-gold-hover: #e8b612;
+  --button-gold-border: #f2c214;
+  --button-gold-border-hover: #e8b612;
+  --button-gold-foreground: oklch(0.32 0.05 75);
+  --button-warning-border: #fdba74;
+  --button-warning-border-hover: #f97316;
+  --button-warning-foreground: #7c2d12;
+  --button-primary-border: oklch(0.14 0 0);
+  --button-primary-border-hover: oklch(0.12 0 0);
+  --button-primary-border-inset: rgb(255 255 255 / 0.18);
+  --button-primary-border-inset-hover: rgb(255 255 255 / 0.24);
+  --button-tone-primary-stack-rest:
+    inset 0 1.2px 0 0 rgb(255 255 255 / 0.45),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.22),
+    inset 0 0 0 1px var(--button-primary-border-inset),
+    0 0 0 1px var(--button-primary-border),
+    0 1px 2px rgb(0 0 0 / 0.22), 0 3px 5px -1px rgb(0 0 0 / 0.28);
+  --button-tone-primary-stack-hover:
+    inset 0 1.5px 0 0 rgb(255 255 255 / 0.5),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.28),
+    inset 0 0 0 1px var(--button-primary-border-inset-hover),
+    0 0 0 1px var(--button-primary-border-hover),
+    0 2px 3px rgb(0 0 0 / 0.26), 0 4px 7px -1px rgb(0 0 0 / 0.34);
+  --button-tone-green-stack-rest:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.45),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.22),
+    0 0 0 1px var(--button-success-border),
+    0 1px 2px rgb(12 74 38 / 0.22), 0 3px 5px -1px rgb(12 74 38 / 0.28);
+  --button-tone-green-stack-hover:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.5),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.28),
+    0 0 0 1px var(--button-success-border-hover),
+    0 2px 3px rgb(12 74 38 / 0.26), 0 4px 7px -1px rgb(12 74 38 / 0.34);
+  --button-tone-red-stack-rest:
+    inset 0 1.2px 0 0 rgb(255 255 255 / 0.5),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.2),
+    0 0 0 1px var(--button-destructive-border),
+    0 1px 2px rgb(120 8 8 / 0.24), 0 3px 5px -1px rgb(120 8 8 / 0.3);
+  --button-tone-red-stack-hover:
+    inset 0 1.2px 0 0 rgb(255 255 255 / 0.5),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.26),
+    0 0 0 1px var(--button-destructive-border-hover),
+    0 2px 3px rgb(120 8 8 / 0.28), 0 4px 7px -1px rgb(120 8 8 / 0.36);
+  --button-tone-gold-stack-rest:
+    inset 0 1.2px 0 0 rgb(255 255 255 / 0.5),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.3),
+    0 0 0 1px var(--button-gold-border),
+    0 1px 2px rgb(160 115 6 / 0.18), 0 3px 5px -1px rgb(160 115 6 / 0.24);
+  --button-tone-gold-stack-hover:
+    inset 0 1.5px 0 0 rgb(255 255 255 / 0.5),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.36),
+    0 0 0 1px var(--button-gold-border-hover),
+    0 2px 3px rgb(160 115 6 / 0.2), 0 4px 7px -1px rgb(160 115 6 / 0.28);
+  --button-tone-orange-stack-rest:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.55),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.35),
+    0 0 0 1px var(--button-warning-border),
+    0 1px 2px rgb(154 52 18 / 0.12), 0 3px 5px -1px rgb(154 52 18 / 0.18);
+  --button-tone-orange-stack-hover:
+    inset 0 1.2px 0 0 rgb(255 255 255 / 0.6),
+    inset 0 8px 14px -6px rgb(255 255 255 / 0.4),
+    0 0 0 1px var(--button-warning-border-hover),
+    0 2px 3px rgb(154 52 18 / 0.16), 0 4px 7px -1px rgb(154 52 18 / 0.22);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --muted-foreground: oklch(0.705 0 0);
+  --surface-0: oklch(0.21 0 0);
+  --surface-2: oklch(0.28 0 0);
+  --surface-3: oklch(0.217 0 0);
+  --border: oklch(0.274 0 0);
+  --card-edge-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(0 0 0 / 0.55);
+  --overview-metric-card-shadow:
+    inset 0 0.5px 0 0 rgb(255 255 255 / 0.04), 0 0 0 1px rgb(255 255 255 / 0.1),
+    0 2px 3px rgb(0 0 0 / 0.5);
+  --secondary: oklch(0.274 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.396 0.141 25.723);
+  --accent-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.68 0 0);
+  --input-surface: oklch(0.262 0 0);
+  --input-edge-shadow:
+    inset 0 0.5px 0 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.42);
+  --button-tone-green-stack-rest:
+    inset 0 1px 0 0 rgb(214 246 226 / 0.5),
+    inset 0 5px 10px -4px rgb(255 255 255 / 0.038), var(--ff-shadow-3);
+  --button-tone-green-stack-hover:
+    inset 0 1px 0 0 rgb(225 251 236 / 0.58),
+    inset 0 5px 10px -4px rgb(255 255 255 / 0.048), var(--ff-shadow-4);
+  --button-tone-red-stack-rest:
+    inset 0 1px 0 0 rgb(248 113 113 / 0.26), var(--ff-shadow-3);
+  --button-tone-red-stack-hover:
+    inset 0 1px 0 0 rgb(252 165 165 / 0.36), var(--ff-shadow-4);
+  --button-tone-gold-stack-rest:
+    inset 0 1px 0 0 rgb(251 239 176 / 0.52),
+    inset 0 5px 10px -4px rgb(255 251 223 / 0.075), var(--ff-shadow-3);
+  --button-tone-gold-stack-hover:
+    inset 0 1px 0 0 rgb(253 244 188 / 0.61),
+    inset 0 5px 10px -4px rgb(255 253 231 / 0.095), var(--ff-shadow-4);
+  --button-tone-orange-stack-rest:
+    inset 0 1px 0 0 rgb(254 215 170 / 0.55),
+    inset 0 5px 10px -4px rgb(255 237 213 / 0.12), var(--ff-shadow-3);
+  --button-tone-orange-stack-hover:
+    inset 0 1px 0 0 rgb(253 186 116 / 0.62),
+    inset 0 5px 10px -4px rgb(255 237 213 / 0.16), var(--ff-shadow-4);
+  --button-tone-primary-stack-rest:
+    inset 0 1.5px 0 0 rgb(255 255 255),
+    inset 0 5px 10px -4px rgb(255 255 255 / 0.42),
+    inset 0 1.5px 0 0px rgb(237, 237, 237),
+    0 0 0 1.5px rgb(179, 178, 178),
+    0 1px 1px -0.5px rgb(0 0 0 / 0.18),
+    0 3px 3px -1.5px rgb(0 0 0 / 0.18);
+  --button-tone-primary-stack-hover:
+    inset 0 1.5px 0 0 rgb(255 255 255 / 0.88),
+    inset 0 5px 10px -4px rgb(255 255 255 / 0.5),
+    inset 0 2px 0 0px rgb(255 255 255 / 0.66),
+    0 0 0 1px rgb(207, 207, 207),
+    0 1px 1px -0.5px rgb(0 0 0 / 0.22),
+    0 3px 3px -1.5px rgb(0 0 0 / 0.22),
+    0 6px 6px -3px rgb(0 0 0 / 0.12);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--surface-0);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), Inter, ui-sans-serif, system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 450;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .select-chevron {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.625rem center;
+    background-size: 1rem 1rem;
+    background-repeat: no-repeat;
+    padding-right: 2.25rem;
+  }
+}
+
+@layer utilities {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /*
+   * iOS Safari auto-zooms focused inputs below 16px.
+   * Keep form controls at 16px on touch viewports even when text-sm is passed.
+   */
+  @media screen and (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
+/* Vaul drawer (subset — package CSS is not exported and has a cssnano-breaking typo) */
+[data-vaul-drawer] {
+  touch-action: none;
+  will-change: transform;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-vaul-drawer][data-vaul-snap-points="false"][data-vaul-drawer-direction="bottom"][data-state="open"] {
+  animation-name: vaul-slide-from-bottom;
+}
+
+[data-vaul-drawer][data-vaul-snap-points="false"][data-vaul-drawer-direction="bottom"][data-state="closed"] {
+  animation-name: vaul-slide-to-bottom;
+}
+
+[data-vaul-overlay][data-vaul-snap-points="false"] {
+  animation-duration: 0.5s;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+[data-vaul-overlay][data-vaul-snap-points="false"][data-state="open"] {
+  animation-name: vaul-fade-in;
+}
+
+[data-vaul-overlay][data-state="closed"] {
+  animation-name: vaul-fade-out;
+}
+
+[data-vaul-handle-hitarea] {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: max(100%, 2.75rem);
+  height: max(100%, 2.75rem);
+  touch-action: inherit;
+}
+
+@keyframes vaul-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes vaul-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vaul-slide-from-bottom {
+  from {
+    transform: translate3d(0, var(--initial-transform, 100%), 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes vaul-slide-to-bottom {
+  to {
+    transform: translate3d(0, var(--initial-transform, 100%), 0);
+  }
 }
