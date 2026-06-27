@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { TextField, Select } from "@/components/ui/Input";
+import { TextField } from "@/components/ui/Input";
+import { Toggle } from "@/components/ui/Toggle";
+import { SelectField, SelectItem } from "@/components/ui/Select";
 import { ImagePickerSection } from "@/components/ui/ImagePickerSection";
-import { getProducts, getCategories, saveProduct, deleteProduct, uid } from "@/lib/mock/db";
+import { getProducts, getCategories, getCategory, saveProduct, deleteProduct, uid, loadDB } from "@/lib/mock/db";
 import { MOCK_BUSINESS_ID } from "@/lib/mock/seed";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import type { Product, ProductType } from "@/lib/types/database";
@@ -18,31 +19,61 @@ export default function ProductoFormPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const isNew = id === "nuevo";
-  const existing = isNew ? null : getProducts().find((p) => p.id === id);
 
-  const [name, setName] = useState("");
-  const [type, setType] = useState<ProductType>("product");
-  const [active, setActive] = useState(true);
-  const [salePrice, setSalePrice] = useState("");
-  const [costPrice, setCostPrice] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [stock, setStock] = useState("0");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const existing = useMemo(
+    () => (isNew ? null : getProducts().find((p) => p.id === id) ?? null),
+    [id, isNew],
+  );
 
-  const categories = getCategories();
+  const [name, setName] = useState(() => existing?.name ?? "");
+  const [type, setType] = useState<ProductType>(() => existing?.type ?? "product");
+  const [active, setActive] = useState(() => existing?.active ?? true);
+  const [salePrice, setSalePrice] = useState(() =>
+    existing ? String(existing.sale_price) : "",
+  );
+  const [costPrice, setCostPrice] = useState(() =>
+    existing ? String(existing.cost_price) : "",
+  );
+  const [categoryId, setCategoryId] = useState(() => existing?.category_id ?? "");
+  const [stock, setStock] = useState(() =>
+    existing ? String(existing.stock) : "0",
+  );
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    () => existing?.image_url ?? null,
+  );
+
+  const categories = useMemo(() => {
+    const active = getCategories();
+    const currentId = categoryId || existing?.category_id;
+    if (!currentId || active.some((c) => c.id === currentId)) return active;
+    const current = getCategory(currentId);
+    return current ? [...active, current] : active;
+  }, [categoryId, existing?.category_id]);
+
+  const categorySelectValue =
+    !categoryId || categories.some((c) => c.id === categoryId)
+      ? categoryId || "none"
+      : "none";
 
   useEffect(() => {
-    if (existing) {
-      setName(existing.name);
-      setType(existing.type);
-      setActive(existing.active);
-      setSalePrice(String(existing.sale_price));
-      setCostPrice(String(existing.cost_price));
-      setCategoryId(existing.category_id ?? "");
-      setStock(String(existing.stock));
-      setImageUrl(existing.image_url);
-    }
-  }, [existing]);
+    if (!id || isNew) return;
+    const product = loadDB().products.find((p) => p.id === id);
+    if (!product) return;
+
+    const active = getCategories();
+    const cid = product.category_id ?? "";
+    const categoryExists =
+      !cid || active.some((c) => c.id === cid) || Boolean(getCategory(cid));
+
+    setName(product.name);
+    setType(product.type);
+    setActive(product.active);
+    setSalePrice(String(product.sale_price));
+    setCostPrice(String(product.cost_price));
+    setCategoryId(categoryExists ? cid : "");
+    setStock(String(product.stock));
+    setImageUrl(product.image_url);
+  }, [id, isNew]);
 
   const sale = parseFloat(salePrice) || 0;
   const cost = parseFloat(costPrice) || 0;
@@ -104,29 +135,21 @@ export default function ProductoFormPage() {
           />
         </section>
 
-        <section className="space-y-2">
+        <section className="">
           <h2 className="text-sm font-semibold text-card-foreground">Estado</h2>
-          <SegmentedControl
-            aria-label="Estado del producto"
-            value={active ? "active" : "inactive"}
-            onChange={(v) => setActive(v === "active")}
-            options={[
-              { value: "active", label: "Activo" },
-              { value: "inactive", label: "Inactivo" },
-            ]}
-          />
+          <Toggle label="Activo" checked={active} onChange={setActive} />
         </section>
 
         <section className="space-y-2">
           <h2 className="text-sm font-semibold text-card-foreground">Tipo</h2>
-          <Select
-            className="text-sm"
+          <SelectField
+            triggerClassName="text-sm"
             value={type}
-            onChange={(e) => setType(e.target.value as ProductType)}
+            onValueChange={(value) => setType(value as ProductType)}
           >
-            <option value="product">Producto</option>
-            <option value="supply">Insumo</option>
-          </Select>
+            <SelectItem value="product">Producto</SelectItem>
+            <SelectItem value="supply">Insumo</SelectItem>
+          </SelectField>
         </section>
 
         <section className="space-y-2">
@@ -175,17 +198,17 @@ export default function ProductoFormPage() {
               Agregar
             </Link>
           </div>
-          <Select
-            value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
+          <SelectField
+            value={categorySelectValue}
+            onValueChange={(value) => setCategoryId(value === "none" ? "" : value)}
           >
-            <option value="">Sin categoría</option>
+            <SelectItem value="none">Sin categoría</SelectItem>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>
+              <SelectItem key={c.id} value={c.id}>
                 {c.name}
-              </option>
+              </SelectItem>
             ))}
-          </Select>
+          </SelectField>
         </section>
 
         <section className="space-y-2">

@@ -7,7 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { mockBusiness, mockCashRegister, mockEmployees } from "@/lib/mock/seed";
-import { getDebts } from "@/lib/mock/db";
+import { getDebts, getBusiness } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useMounted } from "@/lib/hooks/useMounted";
 import { useEmployeeStore } from "@/lib/store/employee";
@@ -32,7 +32,7 @@ export default function DashboardPage() {
   return (
     <>
       <Header
-        businessName={mockBusiness.name}
+        businessName={mounted ? getBusiness().name : mockBusiness.name}
         employeeName={displayEmployee?.name ?? "—"}
         employeeRole={displayEmployee?.role ?? "—"}
         showEmployeeSwitcher
@@ -71,15 +71,19 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="">
           <Link href="/compras">
-            <Button variant="secondary" fullWidth>
+            <Button
+              fullWidth
+              className="justify-between px-4 py-5"
+              iconRight={<ArrowRight className="h-5 w-5" />}
+              variant="secondary">
               Nueva Compra
             </Button>
           </Link>
-          <Button variant="secondary" fullWidth disabled>
+          {/* <Button variant="secondary" fullWidth disabled>
             Nuevo Gasto
-          </Button>
+          </Button> */}
         </div>
 
         <Card className="px-4 !gap-3.5">

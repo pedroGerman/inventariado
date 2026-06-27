@@ -16,7 +16,6 @@ import { useCheckoutStore } from "@/lib/store/checkout";
 import { useEmployeeStore } from "@/lib/store/employee";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { finalizeSale } from "@/lib/services/checkout";
-import { cn } from "@/lib/utils/cn";
 import type { PaymentType } from "@/lib/types/database";
 import { todayISO } from "@/lib/utils/date";
 
@@ -36,6 +35,8 @@ export default function VentasCajaPage() {
   const [customerModal, setCustomerModal] = useState(false);
   const [highlightCustomerId, setHighlightCustomerId] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState(false);
+  const [reopenConfirmAfterCustomer, setReopenConfirmAfterCustomer] =
+    useState(false);
   const [date] = useState(todayISO());
 
   useEffect(() => {
@@ -54,10 +55,10 @@ export default function VentasCajaPage() {
     checkout.tax -
     (checkout.includeDiscount ? checkout.discount : 0);
 
-  function handleFinalize(received: number) {
+  function handleFinalize(toPay: number, received: number) {
     if (!current || items.length === 0) return;
 
-    finalizeSale({
+    const { order, debt } = finalizeSale({
       items,
       employee: current,
       customerId: checkout.customer?.id ?? null,
@@ -66,12 +67,19 @@ export default function VentasCajaPage() {
       discount: checkout.includeDiscount ? checkout.discount : 0,
       service: checkout.includeDelivery ? checkout.service : 0,
       tax: checkout.tax,
-      cashReceived: received,
+      toPay,
+      cashReceived: received > 0 ? received : undefined,
     });
 
     clearCart();
     checkout.reset();
-    router.push("/ordenes?success=1");
+    setConfirmModal(false);
+
+    if (debt) {
+      router.push(`/deudas/${debt.id}`);
+      return;
+    }
+    router.push(`/ordenes/${order.id}?success=1`);
   }
 
   return (
@@ -94,7 +102,7 @@ export default function VentasCajaPage() {
           </CardContent>
         </Card>
 
-          <div className="flex items-center justify-between gap-4 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-4 px-1 py-2.5">
             <div>
               <p className="text-sm text-muted-foreground">Total a cobrar</p>
               {checkout.includeDiscount || checkout.includeDelivery ? (
@@ -111,14 +119,19 @@ export default function VentasCajaPage() {
         <Button
           variant="secondary"
           fullWidth
-          iconLeft={<UserPlus className="h-4 w-4" />}
+          iconLeft={
+            checkout.customer ? undefined : <UserPlus className="h-4 w-4" />
+          }
           onClick={() => setCustomerModal(true)}
-          className={cn(
-            checkout.customer &&
-              "text-left [&>span:last-child]:truncate [&>span:last-child]:flex-1",
-          )}
         >
-          {checkout.customer ? checkout.customer.name : "Agregar cliente"}
+          {checkout.customer ? (
+            <span className="inline-flex min-w-0 max-w-full items-center justify-center gap-1.5">
+              <UserPlus className="h-4 w-4 shrink-0" />
+              <span className="truncate">{checkout.customer.name}</span>
+            </span>
+          ) : (
+            "Agregar cliente"
+          )}
         </Button>
 
         <section className="space-y-2">
@@ -180,8 +193,15 @@ export default function VentasCajaPage() {
         onClose={() => {
           setCustomerModal(false);
           setHighlightCustomerId(null);
+          setReopenConfirmAfterCustomer(false);
         }}
-        onSelect={checkout.setCustomer}
+        onSelect={(customer) => {
+          checkout.setCustomer(customer);
+          if (reopenConfirmAfterCustomer) {
+            setReopenConfirmAfterCustomer(false);
+            setConfirmModal(true);
+          }
+        }}
         highlightCustomerId={highlightCustomerId}
       />
 
@@ -189,7 +209,15 @@ export default function VentasCajaPage() {
         open={confirmModal}
         onClose={() => setConfirmModal(false)}
         total={total}
-        onConfirm={(_, received) => handleFinalize(received)}
+        paymentType={checkout.paymentType}
+        paymentMethod={checkout.paymentMethod}
+        customerName={checkout.customer?.name}
+        onConfirm={handleFinalize}
+        onRequireCustomer={() => {
+          setConfirmModal(false);
+          setReopenConfirmAfterCustomer(true);
+          setCustomerModal(true);
+        }}
       />
     </>
   );

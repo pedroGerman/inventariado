@@ -47,23 +47,18 @@ export default function ComprasPage() {
         right={
           <div className="flex gap-1">
             <Button
+              asChild
               type="button"
               variant="outline"
               size="icon"
               className="rounded-full"
               aria-label="Ajustes"
             >
-              <Settings className="h-4 w-4" />
+              <Link href="/opciones">
+                <Settings className="h-4 w-4" />
+              </Link>
             </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              aria-label="Escanear código"
-            >
-              <QrCode className="h-4 w-4" />
-            </Button>
+       
           </div>
         }
       />

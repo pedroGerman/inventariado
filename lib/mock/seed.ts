@@ -1,4 +1,5 @@
 import type {
+  AccountProfile,
   Business,
   CashRegister,
   Category,
@@ -30,6 +31,15 @@ export const mockBusiness: Business = {
   logo_url: null,
   plan: "free",
   created_at: MOCK_NOW,
+};
+
+export const mockAccountProfile: AccountProfile = {
+  user_id: MOCK_USER_ID,
+  full_name: "Carlos Rodríguez",
+  email: "demo@pos.app",
+  username: "carlosrod",
+  phone: null,
+  avatar_url: null,
 };
 
 export const mockEmployees: Employee[] = [

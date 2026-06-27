@@ -90,11 +90,11 @@ export function CustomerForm({
       <Header title={title} showBack backHref={backHref} />
 
       <div className="flex flex-col gap-4 px-4 py-4 pb-28">
-        {isCustomer && (
+        {/* {isCustomer && (
           <Button variant="secondary" fullWidth disabled>
             Buscar contacto telefónico
           </Button>
-        )}
+        )} */}
 
         <TextField
           label="Nombre *"
@@ -102,6 +102,7 @@ export function CustomerForm({
           onChange={(e) => setName(e.target.value)}
           placeholder="Nombre completo"
           className="text-sm"
+          labelClassName="!text-sm"
         />
 
         <PhoneField value={phone} onChange={setPhone} />

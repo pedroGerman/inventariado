@@ -99,9 +99,11 @@ function Button({
           data-slot="button-icon"
           data-side="left"
           aria-hidden="true"
-          className="shrink-0"
+          className="w-fit"
         >
-          {iconLeft}
+          {/* <div className=""> */}
+            {iconLeft}
+           {/* </div> */}
         </span>
       ) : null}
       <Slottable>{children}</Slottable>

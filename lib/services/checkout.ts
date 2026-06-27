@@ -1,8 +1,12 @@
 import type { CartItem } from "@/lib/store/cart";
-import type { Employee } from "@/lib/types/database";
+import type { Debt, Employee, Order } from "@/lib/types/database";
 import type { PaymentMethod, PaymentType } from "@/lib/types/database";
 import { generateOrderNumber } from "@/lib/utils/generateOrderNumber";
 import { todayISO } from "@/lib/utils/date";
+import {
+  computeSalePaymentAmounts,
+  debtStatusFromAmounts,
+} from "@/lib/utils/salePayment";
 import {
   adjustStock,
   saveDebt,
@@ -21,23 +25,36 @@ interface FinalizeSaleParams {
   discount: number;
   service: number;
   tax: number;
+  toPay?: number;
   cashReceived?: number;
 }
 
-export function finalizeSale(params: FinalizeSaleParams) {
+export interface FinalizeSaleResult {
+  order: Order;
+  debt?: Debt;
+}
+
+export function finalizeSale(params: FinalizeSaleParams): FinalizeSaleResult {
   const subtotal = params.items.reduce((s, i) => s + i.total_price, 0);
   const total = subtotal + params.tax + params.service - params.discount;
   const orderId = uid("ord");
   const now = new Date().toISOString();
+  const payment = computeSalePaymentAmounts(
+    total,
+    params.paymentType,
+    params.paymentMethod,
+    params.toPay ?? total,
+    params.cashReceived,
+  );
 
-  const order = {
+  const order: Order = {
     id: orderId,
     business_id: MOCK_BUSINESS_ID,
     employee_id: params.employee.id,
     customer_id: params.customerId,
     register_id: mockCashRegister.id,
     order_number: generateOrderNumber("sale"),
-    status: "confirmed" as const,
+    status: "confirmed",
     payment_method: params.paymentMethod,
     payment_type: params.paymentType,
     subtotal,
@@ -47,8 +64,8 @@ export function finalizeSale(params: FinalizeSaleParams) {
     total,
     date: todayISO(),
     created_at: now,
-    cash_received: params.cashReceived,
-    change: params.cashReceived ? Math.max(params.cashReceived - total, 0) : 0,
+    cash_received: payment.cashReceived,
+    change: payment.change,
     items: params.items.map((item) => ({
       id: uid("oi"),
       order_id: orderId,
@@ -66,21 +83,23 @@ export function finalizeSale(params: FinalizeSaleParams) {
     if (item.product_id) adjustStock(item.product_id, -item.quantity);
   });
 
-  if (params.paymentType === "pay_later" && params.customerId) {
-    saveDebt({
+  let debt: Debt | undefined;
+  if (payment.balanceDue > 0 && params.customerId) {
+    debt = {
       id: uid("debt"),
       order_id: orderId,
       customer_id: params.customerId,
       business_id: MOCK_BUSINESS_ID,
       total,
-      paid: 0,
-      remaining: total,
-      status: "pending",
+      paid: payment.amountApplied,
+      remaining: payment.balanceDue,
+      status: debtStatusFromAmounts(total, payment.amountApplied),
       created_at: now,
-    });
+    };
+    saveDebt(debt);
   }
 
-  return order;
+  return { order, debt };
 }
 
 interface FinalizePurchaseParams {

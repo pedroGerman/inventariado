@@ -16,9 +16,10 @@ import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { logout } from "@/lib/auth/actions";
-import { mockBusiness, mockEmployees } from "@/lib/mock/seed";
+import { mockEmployees } from "@/lib/mock/seed";
 import { useEmployeeStore } from "@/lib/store/employee";
 import { Modal } from "@/components/ui/Modal";
+import { AccountProfileHeader } from "@/components/opciones/AccountProfileHeader";
 
 const menuItems = [
   { href: "/compras", label: "Compras", icon: ShoppingBag },
@@ -27,11 +28,10 @@ const menuItems = [
   { href: "/opciones/categorias", label: "Categorías", icon: Tags },
   { href: "/opciones/clientes", label: "Clientes/Proveedores", icon: Users },
   { href: "/deudas", label: "Deudas", icon: Wallet },
-  { href: "#", label: "Ajustes", icon: Settings },
+  // { href: "#", label: "Ajustes", icon: Settings },
 ];
 
 export default function OpcionesPage() {
-  const current = useEmployeeStore((s) => s.current);
   const setCurrent = useEmployeeStore((s) => s.setCurrent);
   const [employeeModal, setEmployeeModal] = useState(false);
 
@@ -40,18 +40,7 @@ export default function OpcionesPage() {
       <Header title="Opciones" />
 
       <div className="flex flex-col gap-8 px-4 py-4">
-        <Card className="!px-4 !py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-xl font-bold text-primary">
-              {current?.name.charAt(0) ?? "U"}
-            </div>
-            <div className="flex flex-col gap-1">
-              <p className="font-semibold text-sm">{current?.name ?? "Usuario"}</p>
-              <p className="text-xs text-slate-500">demo@pos.app</p>
-              {/* <p className="text-xs text-slate-400">ID soporte: POS-001</p> */}
-            </div>
-          </div>
-        </Card>
+        <AccountProfileHeader />
 
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-card-foreground">
@@ -101,22 +90,31 @@ export default function OpcionesPage() {
           </Card>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            localStorage.removeItem("pos-mock-db");
-            window.location.reload();
-          }}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 py-3 text-sm text-slate-600"
-        >
-          <RefreshCw className="h-4 w-4" /> Actualizar base de datos
-        </button>
+        <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem("pos-mock-db");
+              window.location.reload();
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-3 text-sm text-slate-600"
+          >
+            <RefreshCw className="h-4 w-4" /> Actualizar base de datos
+          </button>
 
-        <form action={logout}>
-          <Button type="submit" variant="danger" fullWidth>
+          <Button
+            type="button"
+            variant="danger"
+            fullWidth
+            size="sm"
+            className="!rounded-lg !py-5 text-sm font-bold"
+            onClick={() => {
+              void logout();
+            }}
+          >
             Cerrar sesión
           </Button>
-        </form>
+        </div>
       </div>
 
       <Modal open={employeeModal} onClose={() => setEmployeeModal(false)} title="Cambiar empleado">

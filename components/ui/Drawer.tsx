@@ -37,7 +37,7 @@ const DrawerContent = React.forwardRef<
     <DrawerPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mx-auto flex h-auto w-full max-w-mobile flex-col rounded-t-3xl bg-white shadow-xl outline-none",
+        "fixed inset-x-0 bottom-0 z-50 mx-auto flex w-full max-w-mobile flex-col rounded-t-3xl bg-white shadow-xl outline-none",
         className,
       )}
       style={style}
@@ -74,34 +74,36 @@ function AppDrawer({
 
   const content = (
     <DrawerContent
-      className={cn(!fitContent && "flex flex-col")}
+      className="flex min-h-0 flex-col"
       style={
         fitContent
-          ? undefined
+          ? { maxHeight: "95dvh" }
           : { height: drawerHeight, maxHeight: drawerHeight }
       }
     >
       <DrawerPrimitive.Handle className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-slate-300" />
+
+      {title ? (
+        <div className="flex shrink-0 items-center justify-between px-4 pb-3 pt-2">
+          <DrawerPrimitive.Title className="text-lg font-bold text-slate-900">
+            {title}
+          </DrawerPrimitive.Title>
+          <DrawerPrimitive.Close
+            aria-label="Cerrar"
+            className="rounded-full p-1 text-slate-400 hover:bg-slate-100"
+          >
+            <X className="h-5 w-5" />
+          </DrawerPrimitive.Close>
+        </div>
+      ) : null}
+
       <div
+        data-vaul-no-drag
         className={cn(
-          "safe-bottom flex min-h-0 flex-1 flex-col px-4 pb-6 pt-2",
-          fitContent && "max-h-[95dvh] overflow-y-auto",
+          "safe-bottom min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-4",
           className,
         )}
       >
-        {title && (
-          <div className="mb-4 flex shrink-0 items-center justify-between">
-            <DrawerPrimitive.Title className="text-lg font-bold text-slate-900">
-              {title}
-            </DrawerPrimitive.Title>
-            <DrawerPrimitive.Close
-              aria-label="Cerrar"
-              className="rounded-full p-1 text-slate-400 hover:bg-slate-100"
-            >
-              <X className="h-5 w-5" />
-            </DrawerPrimitive.Close>
-          </div>
-        )}
         {children}
       </div>
     </DrawerContent>

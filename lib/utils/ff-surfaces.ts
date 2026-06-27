@@ -101,3 +101,9 @@ export const ffCommentThreadSurfaceClass = cn(
 export const ffPendingCommentCardClassName = cn(
   "w-full bg-surface-3 shadow-card-edge dark:bg-ff-surface-4 dark:shadow-ff-surface-4",
 );
+
+/** Floating menus — select dropdowns, popovers. */
+export const liftedPopoverSurfaceClassName = cn(
+  "border-0 bg-ff-surface-4 text-card-foreground shadow-ff-surface-4",
+  "dark:bg-ff-surface-5 dark:shadow-ff-surface-5",
+);

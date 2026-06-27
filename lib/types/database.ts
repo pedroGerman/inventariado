@@ -2,7 +2,7 @@ export type EmployeeRole = "owner" | "cashier" | "employee";
 export type ProductType = "product" | "supply";
 export type OrderStatus = "confirmed" | "pending" | "cancelled" | "returned";
 export type PurchaseStatus = "confirmed" | "pending" | "cancelled";
-export type PaymentMethod = "cash" | "credit_card" | "debit_card" | "other";
+export type PaymentMethod = "cash" | "transfer" | "credit_card" | "debit_card" | "other";
 export type PaymentType = "pay_all" | "deposit" | "pay_later" | "split";
 export type PurchasePaymentType = "pay_all" | "deposit" | "pay_later";
 export type DebtStatus = "pending" | "partial" | "paid";
@@ -18,6 +18,15 @@ export interface Business {
   currency?: string;
   settings?: Record<string, unknown>;
   created_at: string;
+}
+
+export interface AccountProfile {
+  user_id: string;
+  full_name: string;
+  email: string;
+  username: string;
+  phone: string | null;
+  avatar_url: string | null;
 }
 
 export interface Employee {

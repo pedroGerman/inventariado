@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { Select } from "@/components/ui/Input";
+import { TextField } from "@/components/ui/Input";
+import { SelectField, SelectItem } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { savePayment, uid } from "@/lib/mock/db";
@@ -33,6 +34,10 @@ export function PaymentModal({
   const payAmount = mode === "full" ? amount : parseFloat(partialAmount) || 0;
   const valid = payAmount > 0 && payAmount <= amount;
 
+  useEffect(() => {
+    if (!open) setPartialAmount("");
+  }, [open]);
+
   function handleAccept() {
     if (!valid) return;
     savePayment({
@@ -51,6 +56,7 @@ export function PaymentModal({
       open={open}
       onClose={onClose}
       title={mode === "full" ? "Cobrar Todo" : "Abonar"}
+      // fitContent
     >
       <div className="space-y-4">
         {mode === "full" && (
@@ -66,15 +72,17 @@ export function PaymentModal({
           onChange={setPrintReceipt}
         />
 
-        <Select
+        <SelectField
           label="Método de pago"
           value={method}
-          onChange={(e) => setMethod(e.target.value)}
+          onValueChange={setMethod}
         >
-          <option value="cash">Efectivo</option>
-          <option value="credit_card">Tarjeta crédito</option>
-          <option value="debit_card">Tarjeta débito</option>
-        </Select>
+          <SelectItem value="cash">Efectivo</SelectItem>
+          <SelectItem value="transfer">Transferencia</SelectItem>
+          <SelectItem value="debit_card">Tarjeta débito</SelectItem>
+          <SelectItem value="credit_card">Tarjeta crédito</SelectItem>
+          <SelectItem value="other">Otros</SelectItem>
+        </SelectField>
 
         <div className="flex items-center justify-between py-3 text-center">
           <p className="text-sm text-slate-500">Saldo</p>
@@ -82,29 +90,28 @@ export function PaymentModal({
         </div>
 
         {mode === "partial" && (
-          <div>
-            <label className="mb-1 block text-sm text-slate-600">Abonas</label>
-            <input
-              type="number"
-              value={partialAmount}
-              onChange={(e) => setPartialAmount(e.target.value)}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-lg font-bold"
-              placeholder="0"
-            />
-            {!valid && partialAmount && (
-              <p className="mt-1 text-xs text-danger">
-                El monto debe ser mayor a 0 y menor o igual al saldo
-              </p>
-            )}
-          </div>
+          <TextField
+            label="Abonas"
+            type="number"
+            inputMode="decimal"
+            value={partialAmount}
+            onChange={(e) => setPartialAmount(e.target.value)}
+            placeholder="0"
+            className="text-lg font-bold"
+            error={
+              !valid && partialAmount
+                ? "El monto debe ser mayor a 0 y menor o igual al saldo"
+                : undefined
+            }
+          />
         )}
 
         <div className="flex gap-3">
-          <Button variant="secondary" fullWidth onClick={onClose}>
+          <Button size="sm" className="!py-5 !rounded-lg" variant="secondary" fullWidth onClick={onClose}>
             Cancelar
           </Button>
-          <Button fullWidth disabled={!valid} onClick={handleAccept}>
-            ACEPTAR
+          <Button size="sm" className="!py-5 !rounded-lg" fullWidth disabled={!valid} onClick={handleAccept}>
+            Aceptar
           </Button>
         </div>
       </div>

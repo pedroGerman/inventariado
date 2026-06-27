@@ -1,7 +1,15 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
-import { Input, selectSurfacePreset } from "@/components/ui/Input";
+import { Input } from "@/components/ui/Input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/Select";
 import {
   PHONE_AREA_CODES,
   composePhone,
@@ -26,9 +34,24 @@ export function PhoneField({
   placeholder = "5551234",
 }: PhoneFieldProps) {
   const { areaCode, number } = parsePhone(value);
+  const [open, setOpen] = useState(false);
+  const suppressOpenRef = useRef(false);
+
+  function dismiss() {
+    suppressOpenRef.current = true;
+    setOpen(false);
+    window.setTimeout(() => {
+      suppressOpenRef.current = false;
+    }, 400);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen && suppressOpenRef.current) return;
+    setOpen(nextOpen);
+  }
 
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("w-full min-w-0", className)}>
       {label ? (
         <label
           htmlFor={id}
@@ -38,21 +61,38 @@ export function PhoneField({
         </label>
       ) : null}
       <div className="flex min-w-0 items-center gap-2">
-        <select
+        <Select
+          open={open}
+          onOpenChange={handleOpenChange}
           value={areaCode}
-          onChange={(e) => onChange(composePhone(e.target.value, number))}
-          aria-label="Código de área"
-          className={cn(
-            ...selectSurfacePreset,
-            "h-9 w-[6.75rem] shrink-0 px-2",
-          )}
+          onValueChange={(code) => {
+            onChange(composePhone(code, number));
+            dismiss();
+          }}
         >
-          {PHONE_AREA_CODES.map((code) => (
-            <option key={code} value={code}>
-              +1 {code}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger
+            aria-label="Código de área"
+            className="!h-9 !w-[6.75rem] shrink-0 rounded-md bg-input-surface px-2 text-base shadow-input-edge hover:bg-input-surface dark:hover:bg-input-surface"
+            onPointerDown={(event) => {
+              if (!open) return;
+              event.preventDefault();
+              dismiss();
+            }}
+          >
+            <SelectValue asChild>
+              <span className="truncate text-base text-foreground">
+                +1 {areaCode}
+              </span>
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent onDismiss={dismiss}>
+            {PHONE_AREA_CODES.map((code) => (
+              <SelectItem key={code} value={code}>
+                +1 {code}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Input
           id={id}
           type="tel"
@@ -64,7 +104,7 @@ export function PhoneField({
             onChange(composePhone(areaCode, digits));
           }}
           placeholder={placeholder}
-          className="min-w-0 flex-1"
+          className="min-w-0 flex-1 text-base"
         />
       </div>
     </div>

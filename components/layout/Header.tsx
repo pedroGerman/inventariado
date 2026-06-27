@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 
@@ -57,20 +57,32 @@ export function Header({
     );
   }
 
+  if(showBack){
+    return (
+      <header className="sticky top-0 z-30 flex items-center text-center gap-3 px-4 border-b-2 border-slate-200 bg-white pb-5 pt-6">
+          <button
+            type="button"
+            onClick={() => (backHref ? router.push(backHref) : router.back())}
+            className="flex h-8 w-8 absolute items-center justify-center  bg-white text-slate-600 hover:bg-slate-50"
+          >
+            <ArrowLeft className="size-5" />
+          </button>
+        <div className="flex-1 min-w-0">
+          {title && (
+            <h1 className={cn("font-medium text-slate-900 text-base")}>
+              {title}
+            </h1>
+          )}
+        </div>
+      </header>
+    );
+  }
+
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-slate-200 bg-white px-4 pb-4 pt-5">
-      {showBack && (
-        <button
-          type="button"
-          onClick={() => (backHref ? router.push(backHref) : router.back())}
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </button>
-      )}
+    <header className="sticky top-0 z-30 flex items-center gap-3 bg-white px-4 pb-1 pt-5">
       <div className="flex-1 min-w-0">
         {title && (
-          <h1 className={cn("font-semibold text-slate-900", subtitle ? "text-base" : "text-lg")}>
+          <h1 className={cn("font-semibold text-slate-900", subtitle ? "text-base" : "text-xl")}>
             {title}
           </h1>
         )}

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { Calculator } from "@/components/ui/Calculator";
 import { Button } from "@/components/ui/Button";
 import { AppDrawer } from "@/components/ui/Drawer";
-import { TextField, selectSurfacePreset } from "@/components/ui/Input";
-import { cn } from "@/lib/utils/cn";
+import { TextField } from "@/components/ui/Input";
+import { SelectField, SelectItem } from "@/components/ui/Select";
 import { ArrowRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/store/cart";
@@ -62,23 +62,17 @@ export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalP
       fitContent
     >
       <div className="space-y-4">
-        <div className="flex flex-col gap-1">
-          <label
-            htmlFor="quick-sale-iva"
-            className="shrink-0 text-sm font-medium text-slate-700"
-          >
-            ¿Aplicar IVA?
-          </label>
-          <select
-            id="quick-sale-iva"
-            value={applyTax ? "18" : "0"}
-            onChange={(e) => setApplyTax(e.target.value === "18")}
-            className={cn(...selectSurfacePreset, "w-auto min-w-[9rem] shrink-0")}
-          >
-            <option value="0">Sin impuesto</option>
-            <option value="18">18%</option>
-          </select>
-        </div>
+        <SelectField
+          id="quick-sale-iva"
+          label="¿Aplicar IVA?"
+          fullWidth={false}
+          value={applyTax ? "18" : "0"}
+          onValueChange={(value) => setApplyTax(value === "18")}
+          triggerClassName="w-auto min-w-[9rem] shrink-0"
+        >
+          <SelectItem value="0">Sin impuesto</SelectItem>
+          <SelectItem value="18">18%</SelectItem>
+        </SelectField>
         <TextField
           label="Descripción"
           value={description}

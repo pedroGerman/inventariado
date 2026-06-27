@@ -29,7 +29,7 @@ export default function OrdenesPage() {
 
   return (
     <>
-      <Header title="Órdenes de Venta" subtitle="Registro histórico" />
+      <Header title="Órdenes de Venta"/>
       <div className="px-4 py-3 flex flex-col gap-6">
 
         <div className="flex flex-col gap-3">

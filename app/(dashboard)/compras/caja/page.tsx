@@ -140,6 +140,8 @@ export default function ComprasCajaPage() {
         open={confirmModal}
         onClose={() => setConfirmModal(false)}
         total={total}
+        paymentType={checkout.paymentType}
+        paymentMethod={checkout.paymentMethod}
         onConfirm={() => handleFinalize()}
       />
     </>

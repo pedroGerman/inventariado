@@ -1,91 +1,186 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AlertTriangle } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/Input";
 import { NumericKeyboard } from "@/components/ui/NumericKeyboard";
+import type { PaymentMethod, PaymentType } from "@/lib/types/database";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
+import {
+  paymentMethodReceivedLabel,
+  paymentMethodUsesNumericKeyboard,
+} from "@/lib/utils/paymentMethod";
+import {
+  computeSalePaymentAmounts,
+  saleCreatesDebt,
+} from "@/lib/utils/salePayment";
 
 interface ConfirmPaymentModalProps {
   open: boolean;
   onClose: () => void;
   total: number;
-  onConfirm: (paid: number, received: number) => void;
+  paymentType: PaymentType;
+  paymentMethod: PaymentMethod;
+  customerName?: string | null;
+  onConfirm: (toPay: number, received: number) => void;
+  onRequireCustomer?: () => void;
 }
 
 export function ConfirmPaymentModal({
   open,
   onClose,
   total,
+  paymentType,
+  paymentMethod,
+  customerName,
   onConfirm,
+  onRequireCustomer,
 }: ConfirmPaymentModalProps) {
-  const [tab, setTab] = useState<"shortcuts" | "keyboard">("keyboard");
   const [toPay, setToPay] = useState(String(total));
   const [received, setReceived] = useState("");
 
+  const isCash = paymentMethod === "cash";
+  const isPayLater = paymentType === "pay_later";
+  const isPartialMode = paymentType === "deposit" || paymentType === "split";
+  const usesKeyboard = paymentMethodUsesNumericKeyboard(paymentMethod);
+
+  useEffect(() => {
+    if (!open) return;
+    setToPay(isPartialMode ? "" : String(total));
+    setReceived("");
+  }, [open, total, isPartialMode]);
+
   const toPayNum = parseFloat(toPay) || 0;
   const receivedNum = parseFloat(received) || 0;
-  const change = Math.max(receivedNum - toPayNum, 0);
+  const amounts = computeSalePaymentAmounts(
+    total,
+    paymentType,
+    paymentMethod,
+    toPayNum,
+    isPartialMode
+      ? undefined
+      : receivedNum > 0
+        ? receivedNum
+        : undefined,
+  );
+  const createsDebt = saleCreatesDebt(amounts);
+  const needsCustomer = createsDebt && !customerName;
+  const canConfirm =
+    isPayLater ||
+    (isPartialMode ? toPayNum > 0 : toPayNum > 0 || receivedNum > 0);
+
+  function handleConfirm() {
+    if (needsCustomer) {
+      onRequireCustomer?.();
+      return;
+    }
+    const paidNow = isPartialMode ? toPayNum : toPayNum || total;
+    const amountIn = isPartialMode ? toPayNum : receivedNum || paidNow;
+    onConfirm(paidNow, amountIn);
+  }
 
   return (
     <Modal open={open} onClose={onClose} title="Confirmar pago">
-      <div className="space-y-4">
-        <div className="text-center">
-          <p className="text-sm text-slate-500">Total a pagar</p>
-          <p className="text-3xl font-bold text-primary">{formatCurrency(total)}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-xs text-slate-500">A pagar</label>
-            <input
+      <div className="flex flex-col gap-6 pb-4 pt-2">
+        <section className="flex flex-col gap-3">
+          <div className="text-center flex items-center justify-between">
+            <p className="text-sm text-slate-500">Total a pagar:</p>
+            <p className="text-base font-bold tabular-nums text-card-foreground">{formatCurrency(total)}</p>
+          </div>
+
+          {createsDebt && (
+            // <p className="text-center text-sm ">
+            //   Saldo pendiente:{" "}
+            //   <span className="font-bold">{formatCurrency(amounts.balanceDue)}</span>
+            // </p>
+            <div className="text-center flex items-center justify-between text-warning">
+              <p className="text-sm">Saldo pendiente:</p>
+              <p className="text-base font-bold tabular-nums text-warning">{formatCurrency(amounts.balanceDue)}</p>
+            </div>
+          )}
+        </section>
+
+        {isPayLater ? (
+          <p className="rounded-xl bg-surface-2 px-4 py-3 text-center text-sm text-muted-foreground">
+            La venta quedará registrada como fiado por{" "}
+            <span className="font-semibold text-foreground">
+              {formatCurrency(total)}
+            </span>
+            .
+          </p>
+        ) : isPartialMode ? (
+          <TextField
+            label="Abonas ahora"
+            value={toPay}
+            onChange={(e) => setToPay(e.target.value)}
+            inputMode="decimal"
+            placeholder="0"
+            className="text-lg font-bold"
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            <TextField
+              label="A pagar"
               value={toPay}
               onChange={(e) => setToPay(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-lg font-bold"
+              inputMode="decimal"
+              className="text-lg font-bold"
             />
+            {usesKeyboard ? (
+              <TextField
+                label={paymentMethodReceivedLabel(paymentMethod)}
+                value={received}
+                onChange={(e) => setReceived(e.target.value)}
+                inputMode="decimal"
+                className="text-lg font-bold"
+              />
+            ) : (
+              <div className="flex flex-col justify-end pb-1">
+                <p className="mb-1.5 text-xs font-medium text-slate-700">
+                  Método
+                </p>
+                <p className="rounded-md bg-input-surface px-3 py-2 text-base font-medium shadow-input-edge">
+                  Otros
+                </p>
+              </div>
+            )}
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-slate-500">Recibes</label>
-            <input
-              value={received}
-              onChange={(e) => setReceived(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-lg font-bold"
-            />
-          </div>
-        </div>
-        {receivedNum > 0 && (
+        )}
+
+        {isCash && amounts.change > 0 && (
           <p className="text-center text-sm text-slate-600">
-            Cambio: <span className="font-bold">{formatCurrency(change)}</span>
+            Cambio:{" "}
+            <span className="font-bold">{formatCurrency(amounts.change)}</span>
           </p>
         )}
-        <div className="flex gap-2">
-          {(["shortcuts", "keyboard"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 rounded-xl py-2 text-sm font-medium ${
-                tab === t ? "bg-primary text-white" : "bg-slate-100 text-slate-600"
-              }`}
-            >
-              {t === "shortcuts" ? "Atajos" : "Teclado"}
-            </button>
-          ))}
-        </div>
-        {tab === "keyboard" ? (
-          <NumericKeyboard value={received} onChange={setReceived} />
-        ) : (
+
+
+
+        {needsCustomer && (
+          <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="text-sm">
+              Agrega un cliente para registrar la deuda en{" "}
+              <span className="font-medium">Deudas</span>.
+            </p>
+          </div>
+        )}
+
+        {usesKeyboard && !isPayLater && (
           <NumericKeyboard
-            value={received}
-            onChange={setReceived}
-            shortcuts={[total, 100, 200, 500, 1000, 2000]}
-            onShortcut={(amount) => setReceived(String(amount))}
+            value={isPartialMode ? toPay : received}
+            onChange={isPartialMode ? setToPay : setReceived}
           />
         )}
+
         <Button
           fullWidth
-          onClick={() => onConfirm(toPayNum, receivedNum || toPayNum)}
-          disabled={toPayNum <= 0}
+          onClick={handleConfirm}
+          disabled={!canConfirm && !isPayLater}
         >
-          FINALIZAR
+          {needsCustomer ? "AGREGAR CLIENTE" : "FINALIZAR"}
         </Button>
       </div>
     </Modal>

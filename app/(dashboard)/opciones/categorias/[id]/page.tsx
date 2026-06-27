@@ -92,7 +92,7 @@ export default function CategoriaFormPage() {
           />
         </section>
 
-        <section className="space-y-1">
+        <section className="">
           <h2 className="text-sm font-semibold text-card-foreground">Estado</h2>
           <Toggle label="Activo" checked={active} onChange={setActive} />
         </section>

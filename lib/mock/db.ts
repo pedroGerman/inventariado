@@ -1,6 +1,8 @@
 "use client";
 
 import type {
+  AccountProfile,
+  Business,
   Category,
   Customer,
   Debt,
@@ -11,6 +13,8 @@ import type {
   Supplier,
 } from "@/lib/types/database";
 import {
+  mockAccountProfile,
+  mockBusiness,
   mockCategories,
   mockCustomers,
   mockDebts,
@@ -31,6 +35,8 @@ interface MockDB {
   purchases: Purchase[];
   debts: Debt[];
   payments: Payment[];
+  business: Business;
+  account: AccountProfile;
 }
 
 function defaultDB(): MockDB {
@@ -43,6 +49,19 @@ function defaultDB(): MockDB {
     purchases: [...mockPurchases],
     debts: [...mockDebts],
     payments: [],
+    business: { ...mockBusiness },
+    account: { ...mockAccountProfile },
+  };
+}
+
+function normalizeDB(raw: Partial<MockDB> | null): MockDB {
+  const defaults = defaultDB();
+  if (!raw) return defaults;
+  return {
+    ...defaults,
+    ...raw,
+    business: raw.business ?? defaults.business,
+    account: raw.account ?? defaults.account,
   };
 }
 
@@ -54,7 +73,7 @@ export function loadDB(): MockDB {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db));
     return db;
   }
-  return JSON.parse(raw) as MockDB;
+  return normalizeDB(JSON.parse(raw) as Partial<MockDB>);
 }
 
 export function saveDB(db: MockDB): void {
@@ -75,6 +94,10 @@ export function getCategories(showIn?: "ventas" | "compras"): Category[] {
   const cats = loadDB().categories.filter((c) => c.active);
   if (!showIn) return cats;
   return cats.filter((c) => c.show_in.includes(showIn));
+}
+
+export function getCategory(id: string): Category | undefined {
+  return loadDB().categories.find((c) => c.id === id);
 }
 
 export function getCustomers(): Customer[] {
@@ -113,6 +136,10 @@ export function getDebts(): Debt[] {
 
 export function getDebt(id: string): Debt | undefined {
   return loadDB().debts.find((d) => d.id === id);
+}
+
+export function getDebtByOrderId(orderId: string): Debt | undefined {
+  return loadDB().debts.find((d) => d.order_id === orderId);
 }
 
 export function saveOrder(order: Order): void {
@@ -201,5 +228,25 @@ export function adjustStock(productId: string, delta: number): void {
   const db = loadDB();
   const product = db.products.find((p) => p.id === productId);
   if (product) product.stock = Math.max(0, product.stock + delta);
+  saveDB(db);
+}
+
+export function getBusiness(): Business {
+  return loadDB().business;
+}
+
+export function saveBusiness(business: Business): void {
+  const db = loadDB();
+  db.business = business;
+  saveDB(db);
+}
+
+export function getAccountProfile(): AccountProfile {
+  return loadDB().account;
+}
+
+export function saveAccountProfile(account: AccountProfile): void {
+  const db = loadDB();
+  db.account = account;
   saveDB(db);
 }

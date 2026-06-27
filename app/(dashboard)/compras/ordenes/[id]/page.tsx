@@ -12,21 +12,12 @@ import { mockEmployees } from "@/lib/mock/seed";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
+import { getPaymentMethodLabel } from "@/lib/utils/paymentMethod";
 
 const STATUS_LABELS: Record<string, string> = {
   confirmed: "Confirmada",
   cancelled: "Anulada",
   pending: "Pendiente",
-};
-
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: "Efectivo",
-  credit_card: "Tarjeta crédito",
-  debit_card: "Tarjeta débito",
-  other: "Otros",
-  card: "Tarjeta",
-  transfer: "Transferencia",
-  credit: "Crédito",
 };
 
 function DetailRow({
@@ -110,9 +101,7 @@ export default function CompraDetallePage() {
         : "warning";
 
   const statusLabel = STATUS_LABELS[purchase.status] ?? purchase.status;
-  const paymentLabel =
-    PAYMENT_LABELS[purchase.payment_method] ??
-    purchase.payment_method.replace("_", " ");
+  const paymentLabel = getPaymentMethodLabel(purchase.payment_method);
 
   return (
     <>

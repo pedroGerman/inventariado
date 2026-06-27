@@ -48,6 +48,7 @@ export interface TextFieldProps extends Omit<InputProps, "unstyled"> {
   fullWidth?: boolean;
   leftIcon?: React.ReactNode;
   rightElement?: React.ReactNode;
+  labelClassName?: string;
 }
 
 const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
@@ -60,6 +61,7 @@ const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
       leftIcon,
       rightElement,
       className,
+      labelClassName,
       id,
       ...props
     },
@@ -73,7 +75,7 @@ const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="mb-1 block text-sm font-medium text-slate-700"
+            className={cn("mb-1.5 block text-xs font-medium text-slate-700", labelClassName)}
           >
             {label}
           </label>
@@ -164,8 +166,8 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
   fullWidth?: boolean;
 }
 
-export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
-  function Select(
+export const NativeSelect = React.forwardRef<HTMLSelectElement, SelectProps>(
+  function NativeSelect(
     { label, error, helperText, fullWidth = true, className, id, children, ...props },
     ref,
   ) {
@@ -199,7 +201,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     );
   },
 );
-Select.displayName = "Select";
+NativeSelect.displayName = "NativeSelect";
 
 export { Input, TextField, inputSurfacePreset, selectSurfacePreset };
 export type { InputProps };

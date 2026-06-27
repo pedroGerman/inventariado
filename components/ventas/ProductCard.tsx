@@ -55,7 +55,7 @@ export function ProductCard({
       )}
     >
       {outOfStock && (
-        <Badge variant="danger" className="absolute right-1.5 top-1.5 z-10">
+        <Badge variant="danger" className="absolute right-2.5 top-2.5 z-10">
           Agotado
         </Badge>
       )}

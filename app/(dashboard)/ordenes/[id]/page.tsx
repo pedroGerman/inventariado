@@ -1,7 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { Ban, MoreHorizontal, Printer, RotateCcw, Share2 } from "lucide-react";
+import Link from "next/link";
+import { Ban, MoreHorizontal, Printer, RotateCcw, Share2, Wallet } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,7 +13,9 @@ import {
   CardTitle,
 } from "@/components/ui/Card";
 import { CheckoutSummary } from "@/components/caja/CheckoutSummary";
-import { getOrder, getCustomers } from "@/lib/mock/db";
+import { getOrder, getCustomers, getDebtByOrderId } from "@/lib/mock/db";
+import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
+import { getPaymentMethodLabel } from "@/lib/utils/paymentMethod";
 import { mockEmployees } from "@/lib/mock/seed";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
@@ -24,11 +27,11 @@ const STATUS_LABELS: Record<string, string> = {
   pending: "Pendiente",
 };
 
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: "Efectivo",
-  card: "Tarjeta",
-  transfer: "Transferencia",
-  credit: "Crédito",
+const PAYMENT_TYPE_LABELS: Record<string, string> = {
+  pay_all: "Pagar todo",
+  deposit: "Abonar",
+  pay_later: "Pagar después",
+  split: "Dividir cuenta",
 };
 
 function DetailRow({
@@ -88,9 +91,11 @@ function ActionButton({
 }
 
 export default function OrdenDetallePage() {
+  useMockDBRefresh();
   const { id } = useParams<{ id: string }>();
   const order = getOrder(id);
   const customers = getCustomers();
+  const debt = order ? getDebtByOrderId(order.id) : undefined;
 
   if (!order) {
     return (
@@ -112,9 +117,7 @@ export default function OrdenDetallePage() {
         : "warning";
 
   const statusLabel = STATUS_LABELS[order.status] ?? order.status;
-  const paymentLabel =
-    PAYMENT_LABELS[order.payment_method] ??
-    order.payment_method.replace("_", " ");
+  const paymentLabel = getPaymentMethodLabel(order.payment_method);
 
   return (
     <>
@@ -142,6 +145,10 @@ export default function OrdenDetallePage() {
               value={`${order.date} ${formatTime(order.created_at)}`}
             />
             <DetailRow label="Método de pago" value={paymentLabel} />
+            <DetailRow
+              label="Modo de pago"
+              value={PAYMENT_TYPE_LABELS[order.payment_type] ?? order.payment_type}
+            />
             <DetailRow label="Estado">
               <Badge variant={statusVariant}>{statusLabel}</Badge>
             </DetailRow>
@@ -187,12 +194,36 @@ export default function OrdenDetallePage() {
                     {formatCurrency(order.cash_received)}
                   </span>
                 </div>
-                <div className="flex justify-between text-muted-foreground">
-                  <span>Cambio</span>
-                  <span className="shrink-0 text-xs font-medium tabular-nums text-slate-600">
-                    {formatCurrency(order.change ?? 0)}
-                  </span>
-                </div>
+                {(order.change ?? 0) > 0 && (
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Cambio</span>
+                    <span className="shrink-0 text-xs font-medium tabular-nums text-slate-600">
+                      {formatCurrency(order.change ?? 0)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+            {debt && debt.remaining > 0 && (
+              <Link
+                href={`/deudas/${debt.id}`}
+                className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm transition-colors hover:bg-amber-100"
+              >
+                <span className="inline-flex items-center gap-2 font-medium text-amber-900">
+                  <Wallet className="h-4 w-4 shrink-0" />
+                  Saldo pendiente
+                </span>
+                <span className="font-bold tabular-nums text-warning">
+                  {formatCurrency(debt.remaining)}
+                </span>
+              </Link>
+            )}
+            {debt && debt.paid > 0 && debt.remaining > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Abonado</span>
+                <span className="shrink-0 text-xs font-medium tabular-nums text-slate-600">
+                  {formatCurrency(debt.paid)}
+                </span>
               </div>
             )}
         </div>

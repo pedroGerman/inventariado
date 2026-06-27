@@ -18,14 +18,8 @@ import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
 import { formatPhoneDisplay, getWhatsAppUrl } from "@/lib/utils/phone";
+import { getPaymentMethodLabel } from "@/lib/utils/paymentMethod";
 import { cn } from "@/lib/utils/cn";
-
-const PAYMENT_LABELS: Record<string, string> = {
-  cash: "Efectivo",
-  card: "Tarjeta",
-  transfer: "Transferencia",
-  credit: "Crédito",
-};
 
 function DetailRow({
   label,
@@ -105,8 +99,7 @@ export default function DeudaDetallePage() {
 
   const paymentLabel =
     order?.payment_method != null
-      ? (PAYMENT_LABELS[order.payment_method] ??
-        order.payment_method.replace("_", " "))
+      ? getPaymentMethodLabel(order.payment_method)
       : "—";
 
   return (
@@ -130,16 +123,18 @@ export default function DeudaDetallePage() {
 
       <div className="flex flex-col gap-6 px-4 py-4 pb-8">
         <div className="flex gap-3">
-          <Button fullWidth onClick={() => setPayModal("full")}>
-            COBRAR TODO
+          <Button size="sm" className="!rounded-lg !py-5" fullWidth onClick={() => setPayModal("full")}>
+            {/* COBRAR TODO */}
+            Cobrar todo
           </Button>
-          <Button fullWidth variant="dark" onClick={() => setPayModal("partial")}>
-            ABONAR
+          <Button size="sm" className="!rounded-lg !py-5" fullWidth variant="dark" onClick={() => setPayModal("partial")}>
+            {/* ABONAR */}
+            Abonar
           </Button>
         </div>
 
         {customer && (
-          <div className="flex items-center gap-3 rounded-2xl bg-white py-4 px-1 shadow-card">
+          <div className="flex items-center gap-3 rounded-2xl bg-white py-1 px-1 shadow-card">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
               {customer.name.charAt(0)}
             </div>
@@ -151,7 +146,7 @@ export default function DeudaDetallePage() {
                 </p>
               )}
             </div>
-            {customer.phone && (
+            {/* {customer.phone && (
               <a
                 href={getWhatsAppUrl(customer.phone) ?? "#"}
                 target="_blank"
@@ -160,7 +155,7 @@ export default function DeudaDetallePage() {
               >
                 <MessageCircle className="h-5 w-5" />
               </a>
-            )}
+            )} */}
           </div>
         )}
 
@@ -235,16 +230,14 @@ export default function DeudaDetallePage() {
         </Card>
       </div>
 
-      {payModal && (
-        <PaymentModal
-          open={!!payModal}
-          onClose={() => setPayModal(null)}
-          debtId={debt.id}
-          amount={debt.remaining}
-          mode={payModal}
-          onSuccess={() => setTick((t) => t + 1)}
-        />
-      )}
+      <PaymentModal
+        open={payModal !== null}
+        onClose={() => setPayModal(null)}
+        debtId={debt.id}
+        amount={debt.remaining}
+        mode={payModal ?? "partial"}
+        onSuccess={() => setTick((t) => t + 1)}
+      />
     </>
   );
 }
