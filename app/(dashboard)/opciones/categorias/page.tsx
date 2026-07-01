@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Plus, Tags } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { getCategories } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 
@@ -17,15 +16,7 @@ export default function CategoriasPage() {
       <Header title="Categorías" onRefresh={() => window.location.reload()} />
 
       <div className="grid grid-cols-2 gap-4 px-4 py-4 pb-24">
-        {categories.length === 0 ? (
-          <div className="col-span-2">
-            <EmptyState
-              title="No hay categorías"
-              description="Crea una categoría para organizar tus productos."
-            />
-          </div>
-        ) : (
-          categories.map((cat) => (
+        {categories.map((cat) => (
           <Link
             key={cat.id}
             href={`/opciones/categorias/${cat.id}`}
@@ -43,10 +34,12 @@ export default function CategoriasPage() {
                 <Tags className="h-8 w-8 text-slate-400" />
               )}
             </div>
+            {/* <Badge variant={cat.active ? "primary" : "neutral"} className="mb-1">
+              {cat.active ? "Activo" : "Inactivo"}
+            </Badge> */}
             <p className="text-sm font-medium">{cat.name}</p>
           </Link>
-          ))
-        )}
+        ))}
       </div>
 
       <Button

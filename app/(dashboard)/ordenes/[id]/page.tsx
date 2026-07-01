@@ -6,15 +6,12 @@ import { Ban, MoreHorizontal, Printer, RotateCcw, Share2, Wallet } from "lucide-
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { CheckoutSummary } from "@/components/caja/CheckoutSummary";
 import { getOrder, getCustomers, getDebtByOrderId } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { getPaymentMethodLabel } from "@/lib/utils/paymentMethod";
-import { useEmployeeStore } from "@/lib/store/employee";
+import { mockEmployees } from "@/lib/mock/seed";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
@@ -105,9 +102,7 @@ export default function OrdenDetallePage() {
   }
 
   const customer = customers.find((c) => c.id === order.customer_id);
-  const currentEmployee = useEmployeeStore((s) => s.current);
-  const employee =
-    currentEmployee?.id === order.employee_id ? currentEmployee : null;
+  const employee = mockEmployees.find((e) => e.id === order.employee_id);
 
   const statusVariant =
     order.status === "confirmed"

@@ -29,12 +29,12 @@ const paymentTabs: { id: PaymentType; label: string }[] = [
 export default function VentasCajaPage() {
   return (
     <Suspense fallback={null}>
-      <VentasCajaContent />
+      <VentasCajaPageContent />
     </Suspense>
   );
 }
 
-function VentasCajaContent() {
+function VentasCajaPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { items, getTotal, clearCart } = useCartStore();
@@ -66,7 +66,7 @@ function VentasCajaContent() {
   function handleFinalize(toPay: number, received: number) {
     if (!current || items.length === 0) return;
 
-    void finalizeSale({
+    const { order, debt } = finalizeSale({
       items,
       employee: current,
       customerId: checkout.customer?.id ?? null,
@@ -77,19 +77,17 @@ function VentasCajaContent() {
       tax: checkout.tax,
       toPay,
       cashReceived: received > 0 ? received : undefined,
-    }).then(({ order, debt }) => {
-      clearCart();
-      checkout.reset();
-      setConfirmModal(false);
-
-      if (debt) {
-        router.push(`/deudas/${debt.id}`);
-        return;
-      }
-      router.push(`/ordenes/${order.id}?success=1`);
-    }).catch((err) => {
-      console.error("[finalizeSale]", err);
     });
+
+    clearCart();
+    checkout.reset();
+    setConfirmModal(false);
+
+    if (debt) {
+      router.push(`/deudas/${debt.id}`);
+      return;
+    }
+    router.push(`/ordenes/${order.id}?success=1`);
   }
 
   return (

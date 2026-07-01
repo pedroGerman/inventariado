@@ -27,12 +27,12 @@ const paymentTabs: { id: PaymentType; label: string }[] = [
 export default function ComprasCajaPage() {
   return (
     <Suspense fallback={null}>
-      <ComprasCajaContent />
+      <ComprasCajaPageContent />
     </Suspense>
   );
 }
 
-function ComprasCajaContent() {
+function ComprasCajaPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { items, getTotal, clearCart } = useCartStore();
@@ -55,8 +55,7 @@ function ComprasCajaContent() {
 
   function handleFinalize() {
     if (!current || items.length === 0) return;
-
-    void finalizePurchase({
+    finalizePurchase({
       items,
       employee: current,
       supplierId: checkout.supplier?.id ?? null,
@@ -64,15 +63,10 @@ function ComprasCajaContent() {
       paymentType: checkout.paymentType as "pay_all" | "deposit" | "pay_later",
       discount: 0,
       tax: 0,
-    })
-      .then(() => {
-        clearCart();
-        checkout.reset();
-        router.push("/compras/ordenes?success=1");
-      })
-      .catch((err) => {
-        console.error("[finalizePurchase]", err);
-      });
+    });
+    clearCart();
+    checkout.reset();
+    router.push("/compras/ordenes?success=1");
   }
 
   return (

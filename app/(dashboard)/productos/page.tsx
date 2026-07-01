@@ -5,7 +5,6 @@ import { useMemo, useState } from "react";
 import { ChevronRight, Package, Plus, Search } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { TextField } from "@/components/ui/Input";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { getProducts } from "@/lib/mock/db";
@@ -107,23 +106,15 @@ export default function ProductosPage() {
         )} */}
 
         {filtered.length === 0 ? (
-          <EmptyState
-            title={
-              products.length === 0
-                ? tab === "product"
-                  ? "No hay productos"
-                  : "No hay insumos"
-                : "No hay productos que coincidan"
-            }
-            description={
-              products.length === 0
-                ? "Crea uno con el botón + de arriba."
-                : "Prueba con otro término de búsqueda o filtro."
-            }
-          />
+          <div className="h-[calc(100vh-350px)] gap-2 flex justify-center items-center ">
+            <p className="text-sm text-muted-foreground">
+              No hay productos que coincidan
+            </p>
+          </div>
         ) : (
           <div className="divide-y divide-slate-200 flex flex-col">
-            {filtered.map((p) => (
+            {filtered.map((p) => {
+              return (
                 <div key={p.id} className="gap-0 py-5">
                   <Link
                     href={`/productos/${p.id}`}
@@ -163,7 +154,8 @@ export default function ProductosPage() {
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </Link>
                 </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
