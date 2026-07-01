@@ -6,12 +6,7 @@ import { Ban, MoreHorizontal, Printer, RotateCcw, Share2, Wallet } from "lucide-
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { CheckoutSummary } from "@/components/caja/CheckoutSummary";
 import { getOrder, getCustomers, getDebtByOrderId } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";

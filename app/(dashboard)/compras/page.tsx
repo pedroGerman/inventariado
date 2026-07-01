@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ClipboardList, QrCode, Settings } from "lucide-react";
+import { ClipboardList, Settings } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { CategoryTabs } from "@/components/ventas/CategoryTabs";
 import { ProductCard } from "@/components/ventas/ProductCard";

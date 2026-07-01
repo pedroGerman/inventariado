@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -12,7 +12,6 @@ import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatPhoneDisplay } from "@/lib/utils/phone";
 import { cn } from "@/lib/utils/cn";
-import { ffElevatedIconShellClassName } from "@/lib/utils/ff-surfaces";
 
 function SummaryMetric({
   label,
@@ -42,12 +41,10 @@ function ContactRow({
   name,
   phone,
   tone = "success",
-  showWhatsApp = false,
 }: {
   name: string;
   phone?: string | null;
   tone?: "success" | "danger";
-  showWhatsApp?: boolean;
 }) {
   return (
     <div className="flex items-center gap-3 py-3.5">
@@ -165,7 +162,6 @@ export default function ClientesPage() {
                       name={item.name}
                       phone={item.phone}
                       tone={isCustomers ? "success" : "danger"}
-                      showWhatsApp={isCustomers}
                     />
                   ))}
                 </div>

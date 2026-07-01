@@ -8,7 +8,6 @@ import {
   Tags,
   Users,
   Wallet,
-  Settings,
   ChevronRight,
   RefreshCw,
 } from "lucide-react";

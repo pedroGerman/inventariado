@@ -4,12 +4,10 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronRight, Package, Plus, Search } from "lucide-react";
 import { Header } from "@/components/layout/Header";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent } from "@/components/ui/Card";
 import { TextField } from "@/components/ui/Input";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { getProducts, getCategories } from "@/lib/mock/db";
+import { getProducts } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { cn } from "@/lib/utils/cn";
@@ -22,7 +20,6 @@ export default function ProductosPage() {
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
-  const categories = getCategories();
   const products = getProducts().filter((p) => p.type === tab);
 
   const filtered = useMemo(() => {
@@ -37,8 +34,6 @@ export default function ProductosPage() {
       return matchesSearch && matchesStock;
     });
   }, [products, search, stockFilter]);
-
-  const outOfStock = products.filter((p) => p.stock === 0).length;
 
   return (
     <>
@@ -119,8 +114,6 @@ export default function ProductosPage() {
         ) : (
           <div className="divide-y divide-slate-200 flex flex-col">
             {filtered.map((p) => {
-              const category = categories.find((c) => c.id === p.category_id);
-
               return (
                 <div key={p.id} className="gap-0 py-5">
                   <Link

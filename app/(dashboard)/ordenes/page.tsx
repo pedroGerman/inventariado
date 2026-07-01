@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, DollarSign, Search } from "lucide-react";
+import { DollarSign, Search } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { getOrders, getCustomers } from "@/lib/mock/db";

@@ -2,7 +2,6 @@
 
 import { Minus, Package, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import type { CartItem } from "@/lib/store/cart";
 

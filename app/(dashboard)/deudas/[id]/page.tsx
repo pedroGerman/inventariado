@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Ban, MessageCircle, MoreHorizontal, Printer, Share2 } from "lucide-react";
+import { Ban, MoreHorizontal, Printer, Share2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -17,7 +17,7 @@ import { mockEmployees } from "@/lib/mock/seed";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
-import { formatPhoneDisplay, getWhatsAppUrl } from "@/lib/utils/phone";
+import { formatPhoneDisplay } from "@/lib/utils/phone";
 import { getPaymentMethodLabel } from "@/lib/utils/paymentMethod";
 import { cn } from "@/lib/utils/cn";
 

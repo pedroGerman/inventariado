@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Truck } from "lucide-react";
 import { Header } from "@/components/layout/Header";
@@ -25,6 +25,14 @@ const paymentTabs: { id: PaymentType; label: string }[] = [
 ];
 
 export default function ComprasCajaPage() {
+  return (
+    <Suspense fallback={null}>
+      <ComprasCajaPageContent />
+    </Suspense>
+  );
+}
+
+function ComprasCajaPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { items, getTotal, clearCart } = useCartStore();
