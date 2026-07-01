@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Ban, MessageCircle, MoreHorizontal, Printer, Share2 } from "lucide-react";
+import { Ban, MoreHorizontal, Printer, Share2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -13,11 +13,11 @@ import {
 import { CheckoutSummary } from "@/components/caja/CheckoutSummary";
 import { PaymentModal } from "@/components/deudas/PaymentModal";
 import { getDebt, getOrder, getCustomers } from "@/lib/mock/db";
-import { mockEmployees } from "@/lib/mock/seed";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
+import { useEmployeeStore } from "@/lib/store/employee";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
-import { formatPhoneDisplay, getWhatsAppUrl } from "@/lib/utils/phone";
+import { formatPhoneDisplay } from "@/lib/utils/phone";
 import { getPaymentMethodLabel } from "@/lib/utils/paymentMethod";
 import { cn } from "@/lib/utils/cn";
 
@@ -95,7 +95,9 @@ export default function DeudaDetallePage() {
 
   const order = getOrder(debt.order_id);
   const customer = getCustomers().find((c) => c.id === debt.customer_id);
-  const employee = mockEmployees.find((e) => e.id === order?.employee_id);
+  const currentEmployee = useEmployeeStore((s) => s.current);
+  const employee =
+    currentEmployee?.id === order?.employee_id ? currentEmployee : null;
 
   const paymentLabel =
     order?.payment_method != null

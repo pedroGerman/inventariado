@@ -4,12 +4,11 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronRight, Package, Plus, Search } from "lucide-react";
 import { Header } from "@/components/layout/Header";
-import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { TextField } from "@/components/ui/Input";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { getProducts, getCategories } from "@/lib/mock/db";
+import { getProducts } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { cn } from "@/lib/utils/cn";
@@ -22,7 +21,6 @@ export default function ProductosPage() {
   const [search, setSearch] = useState("");
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
 
-  const categories = getCategories();
   const products = getProducts().filter((p) => p.type === tab);
 
   const filtered = useMemo(() => {
@@ -37,8 +35,6 @@ export default function ProductosPage() {
       return matchesSearch && matchesStock;
     });
   }, [products, search, stockFilter]);
-
-  const outOfStock = products.filter((p) => p.stock === 0).length;
 
   return (
     <>
@@ -111,17 +107,23 @@ export default function ProductosPage() {
         )} */}
 
         {filtered.length === 0 ? (
-          <div className="h-[calc(100vh-350px)] gap-2 flex justify-center items-center ">
-            <p className="text-sm text-muted-foreground">
-              No hay productos que coincidan
-            </p>
-          </div>
+          <EmptyState
+            title={
+              products.length === 0
+                ? tab === "product"
+                  ? "No hay productos"
+                  : "No hay insumos"
+                : "No hay productos que coincidan"
+            }
+            description={
+              products.length === 0
+                ? "Crea uno con el botón + de arriba."
+                : "Prueba con otro término de búsqueda o filtro."
+            }
+          />
         ) : (
           <div className="divide-y divide-slate-200 flex flex-col">
-            {filtered.map((p) => {
-              const category = categories.find((c) => c.id === p.category_id);
-
-              return (
+            {filtered.map((p) => (
                 <div key={p.id} className="gap-0 py-5">
                   <Link
                     href={`/productos/${p.id}`}
@@ -161,8 +163,7 @@ export default function ProductosPage() {
                     <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
                   </Link>
                 </div>
-              );
-            })}
+            ))}
           </div>
         )}
       </div>

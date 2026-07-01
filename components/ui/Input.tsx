@@ -164,11 +164,22 @@ export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElemen
   error?: string;
   helperText?: string;
   fullWidth?: boolean;
+  labelClassName?: string;
 }
 
 export const NativeSelect = React.forwardRef<HTMLSelectElement, SelectProps>(
   function NativeSelect(
-    { label, error, helperText, fullWidth = true, className, id, children, ...props },
+    {
+      label,
+      error,
+      helperText,
+      fullWidth = true,
+      className,
+      labelClassName,
+      id,
+      children,
+      ...props
+    },
     ref,
   ) {
     const inputId =
@@ -179,7 +190,10 @@ export const NativeSelect = React.forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="mb-1 block text-sm font-medium text-slate-700"
+            className={cn(
+              "mb-1.5 block text-xs font-medium text-slate-700",
+              labelClassName,
+            )}
           >
             {label}
           </label>

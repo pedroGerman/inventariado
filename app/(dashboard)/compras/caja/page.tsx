@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Truck } from "lucide-react";
 import { Header } from "@/components/layout/Header";
@@ -25,6 +25,14 @@ const paymentTabs: { id: PaymentType; label: string }[] = [
 ];
 
 export default function ComprasCajaPage() {
+  return (
+    <Suspense fallback={null}>
+      <ComprasCajaContent />
+    </Suspense>
+  );
+}
+
+function ComprasCajaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { items, getTotal, clearCart } = useCartStore();
@@ -47,7 +55,8 @@ export default function ComprasCajaPage() {
 
   function handleFinalize() {
     if (!current || items.length === 0) return;
-    finalizePurchase({
+
+    void finalizePurchase({
       items,
       employee: current,
       supplierId: checkout.supplier?.id ?? null,
@@ -55,10 +64,15 @@ export default function ComprasCajaPage() {
       paymentType: checkout.paymentType as "pay_all" | "deposit" | "pay_later",
       discount: 0,
       tax: 0,
-    });
-    clearCart();
-    checkout.reset();
-    router.push("/compras/ordenes?success=1");
+    })
+      .then(() => {
+        clearCart();
+        checkout.reset();
+        router.push("/compras/ordenes?success=1");
+      })
+      .catch((err) => {
+        console.error("[finalizePurchase]", err);
+      });
   }
 
   return (

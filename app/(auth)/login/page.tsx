@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { login } from "@/lib/auth/actions";
 import { isMockMode } from "@/lib/config";
+import { clearStaleLocalData } from "@/lib/client/clearStaleLocalData";
 import { AuthFooterLink, AuthScreen } from "@/components/auth/AuthScreen";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,10 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const mock = isMockMode();
+
+  useEffect(() => {
+    if (!mock) clearStaleLocalData();
+  }, [mock]);
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);

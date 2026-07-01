@@ -2,49 +2,141 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Eye, EyeOff } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarCheck,
+  DollarSign,
+  Package,
+  ShoppingBag,
+  Wallet,
+} from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { mockBusiness, mockCashRegister, mockEmployees } from "@/lib/mock/seed";
-import { getDebts, getBusiness } from "@/lib/mock/db";
+import { DashboardMetricCard } from "@/components/dashboard/DashboardMetricCard";
+import { DashboardPeriodPicker } from "@/components/dashboard/DashboardPeriodPicker";
+import { getBusiness } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useMounted } from "@/lib/hooks/useMounted";
 import { useEmployeeStore } from "@/lib/store/employee";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
-import { formatDateTime } from "@/lib/utils/date";
-import { Modal } from "@/components/ui/Modal";
+import {
+  DEFAULT_DASHBOARD_PERIOD,
+  getDashboardPeriodLabel,
+  getSalesSummaryForDashboardFilter,
+  getTopProductsForDashboardFilter,
+  type DashboardPeriodFilter,
+} from "@/lib/utils/dashboardPeriod";
+import { ProductCard } from "@/components/ventas/ProductCard";
 
 export default function DashboardPage() {
   useMockDBRefresh();
   const mounted = useMounted();
   const current = useEmployeeStore((s) => s.current);
-  const setCurrent = useEmployeeStore((s) => s.setCurrent);
-  const [hideAmounts, setHideAmounts] = useState(true);
-  const [employeeModal, setEmployeeModal] = useState(false);
+  const [concealedMetrics, setConcealedMetrics] = useState({
+    salesTotal: true,
+    pendingCollect: true,
+    pendingPay: true,
+  });
+  const [periodFilter, setPeriodFilter] =
+    useState<DashboardPeriodFilter>(DEFAULT_DASHBOARD_PERIOD);
 
-  const debts = mounted ? getDebts() : [];
-  const porCobrar = debts.reduce((s, d) => s + d.remaining, 0);
-  const employee = mockEmployees.find((e) => e.id === mockCashRegister.employee_id);
-  const displayEmployee = mounted ? current ?? mockEmployees[0] : mockEmployees[0];
-  const openedLabel = formatDateTime(mockCashRegister.opened_at);
+  const business = mounted ? getBusiness() : null;
+  const businessName = business?.name?.trim() || "Mi tienda";
+  const periodLabel = getDashboardPeriodLabel(periodFilter);
+  const summary = mounted
+    ? getSalesSummaryForDashboardFilter(periodFilter)
+    : {
+      productsSold: 0,
+      unitsSold: 0,
+      salesTotal: 0,
+      pendingCollect: 0,
+      pendingPay: 0,
+    };
+  const topProducts = mounted
+    ? getTopProductsForDashboardFilter(periodFilter, 6)
+    : [];
+
+  const formatAmount = (
+    amount: number,
+    key: keyof typeof concealedMetrics,
+  ) => (concealedMetrics[key] ? "•••••" : formatCurrency(amount));
+
+  function toggleConcealed(key: keyof typeof concealedMetrics) {
+    setConcealedMetrics((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  }
 
   return (
     <>
       <Header
-        businessName={mounted ? getBusiness().name : mockBusiness.name}
-        employeeName={displayEmployee?.name ?? "—"}
-        employeeRole={displayEmployee?.role ?? "—"}
-        showEmployeeSwitcher
-        onSwitchEmployee={() => setEmployeeModal(true)}
+        businessName={businessName}
+        employeeName={current?.name ?? "—"}
+        employeeRole={current?.role ?? "—"}
       />
 
-      <div className="space-y-4 px-4 py-4">
-        {/* Promotion modal */}
-        {/* <div className="overflow-hidden rounded-2xl bg-gradient-to-r from-primary to-green-600 p-6 text-white">
-          <p className="text-sm opacity-90">Promoción del mes</p>
-          <p className="mt-1 text-xl font-bold">Gestiona tu negocio desde el móvil</p>
-        </div> */}
+      <div className="flex flex-col gap-6 px-4 py-4">
+
+
+
+
+        <section className="space-y-3">
+          <DashboardPeriodPicker
+            value={periodFilter}
+            onChange={setPeriodFilter}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <DashboardMetricCard
+              icon={ShoppingBag}
+              label="Productos vendidos"
+              value={String(summary.productsSold)}
+              sublabel={periodLabel}
+              href="/ordenes"
+            />
+            <DashboardMetricCard
+              icon={Package}
+              label="Unidades vendidas"
+              value={String(summary.unitsSold)}
+              sublabel={periodLabel}
+              href="/ordenes"
+            />
+            <DashboardMetricCard
+              icon={DollarSign}
+              label="Total ventas"
+              value={formatAmount(summary.salesTotal, "salesTotal")}
+              className="col-span-2"
+              sublabel={periodLabel}
+              href="/estadisticas"
+              concealable
+              concealed={concealedMetrics.salesTotal}
+              onToggleConcealed={() => toggleConcealed("salesTotal")}
+            />
+            <DashboardMetricCard
+              icon={Wallet}
+              label="Por cobrar"
+              value={formatAmount(summary.pendingCollect, "pendingCollect")}
+              valueClassName="text-warning"
+              sublabel="Pendiente"
+              href="/deudas"
+              concealable
+              concealed={concealedMetrics.pendingCollect}
+              onToggleConcealed={() => toggleConcealed("pendingCollect")}
+            />
+            <DashboardMetricCard
+              icon={CalendarCheck}
+              label="Por pagar"
+              value={formatAmount(summary.pendingPay, "pendingPay")}
+              sublabel="Pendiente"
+              href="/deudas"
+              concealable
+              concealed={concealedMetrics.pendingPay}
+              onToggleConcealed={() => toggleConcealed("pendingPay")}
+            />
+          </div>
+        </section>
 
         <div className="flex flex-col gap-3">
           <Link href="/estadisticas">
@@ -59,107 +151,71 @@ export default function DashboardPage() {
             </Card>
           </Link>
 
-          <Link href="/ventas" className="block">
-            <Button
-              variant="success"
-              fullWidth
-              className="justify-between px-4 py-5"
-              iconRight={<ArrowRight className="h-5 w-5" />}
-            >
-              Nueva venta
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3 justify-between">
+            <Link href="/ventas" className="block w-full">
+              <Button
+                variant="success"
+                fullWidth
+                className="justify-between px-4 py-5"
+                iconRight={<ArrowRight className="h-5 w-5" />}
+              >
+                Nueva venta
+              </Button>
+            </Link>
+
+            <Link href="/compras" className="block w-full">
+              <Button
+                fullWidth
+                className="justify-between px-4 py-5"
+                iconRight={<ArrowRight className="h-5 w-5" />}
+                variant="secondary"
+              >
+                Nueva Compra
+              </Button>
+            </Link>
+          </div>
         </div>
 
-        <div className="">
-          <Link href="/compras">
-            <Button
-              fullWidth
-              className="justify-between px-4 py-5"
-              iconRight={<ArrowRight className="h-5 w-5" />}
-              variant="secondary">
-              Nueva Compra
-            </Button>
-          </Link>
-          {/* <Button variant="secondary" fullWidth disabled>
-            Nuevo Gasto
-          </Button> */}
-        </div>
-
-        <Card className="px-4 !gap-3.5">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm">Deudas</h3>
-            <button
-              type="button"
-              onClick={() => setHideAmounts(!hideAmounts)}
-              className="text-slate-400"
-            >
-              {hideAmounts ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-slate-500">Pendiente por cobrar</p>
-              <p className="font-bold text-warning">
-                {hideAmounts ? "•••••" : formatCurrency(porCobrar)}
-              </p>
+        <section className="flex flex-col ">
+          {topProducts.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center px-1 justify-between gap-3">
+                <h3 className="text-sm font-semibold text-card-foreground">
+                  Más vendidos
+                </h3>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {topProducts.map(({ product }) => (
+                  <ProductCard key={product.id} product={product} readOnly />
+                ))}
+              </div>
             </div>
-            <div>
-              <p className="text-slate-500">Pendiente por pagar</p>
-              <p className="font-bold text-slate-400">
-                {hideAmounts ? "•••••" : formatCurrency(0)}
+          ) : (
+            <Card className="px-3.5">
+              <div className="mb-1 flex flex-col gap-0.5">
+                <h3 className="font-semibold text-sm">Más vendidos</h3>
+                <p className="text-xs text-slate-500">{periodLabel}</p>
+              </div>
+              <p className="py-4 text-center text-sm text-slate-400">
+                Sin ventas en {periodLabel.toLowerCase()}
               </p>
-            </div>
-          </div>
-          <Link href="/deudas" className="block text-sm text-primary">
-            Ver deudas →
-          </Link>
-        </Card>
+            </Card>
+          )}
+        </section>
 
-        <Card className="px-4 flex flex-col !gap-2">
+        {/* <Card className="px-4 flex flex-col !gap-2">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">Caja</h3>
             <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-primary" />
-              <span className="text-xs capitalize">{mockCashRegister.status === "open" ? "Abierta" : "Cerrada"}</span>
+              <span className="h-2 w-2 rounded-full bg-slate-300" />
+              <span className="text-xs text-muted-foreground">Sin abrir</span>
             </div>
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            Cajero: {employee?.name ?? "—"}
+            Cajero: {current?.name ?? "—"}
           </p>
-          <p className="text-xs text-slate-400">
-            Abierta: {openedLabel}
-          </p>
-        </Card>
-
-        <Card className="px-4 flex flex-col !gap-2">
-          <h3 className="font-semibold text-slate-400">Notificaciones</h3>
-          <p className="text-sm text-slate-400">Sin notificaciones nuevas</p>
-        </Card>
-
-        <Link href="/productos" className="block text-center text-sm font-medium text-primary">
-          Administrar tus productos →
-        </Link>
+        </Card> */}
       </div>
-
-      <Modal open={employeeModal} onClose={() => setEmployeeModal(false)} title="Cambiar empleado">
-        <div className="space-y-2">
-          {mockEmployees.map((emp) => (
-            <button
-              key={emp.id}
-              type="button"
-              onClick={() => {
-                setCurrent(emp);
-                setEmployeeModal(false);
-              }}
-              className="w-full rounded-xl bg-slate-50 px-4 py-3 text-left hover:bg-green-50"
-            >
-              <p className="font-medium">{emp.name}</p>
-              <p className="text-xs capitalize text-slate-500">{emp.role}</p>
-            </button>
-          ))}
-        </div>
-      </Modal>
     </>
   );
 }

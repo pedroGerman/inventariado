@@ -49,8 +49,8 @@ export function ConfirmPaymentModal({
   useEffect(() => {
     if (!open) return;
     setToPay(isPartialMode ? "" : String(total));
-    setReceived("");
-  }, [open, total, isPartialMode]);
+    setReceived(paymentType === "pay_all" ? String(total) : "");
+  }, [open, total, isPartialMode, paymentType]);
 
   const toPayNum = parseFloat(toPay) || 0;
   const receivedNum = parseFloat(received) || 0;

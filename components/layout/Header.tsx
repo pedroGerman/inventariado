@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
 

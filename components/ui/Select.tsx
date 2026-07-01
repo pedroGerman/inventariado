@@ -32,6 +32,7 @@ function SelectTrigger({
   className,
   children,
   size = "md",
+  type = "button",
   ...props
 }: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
   size?: SelectSize;
@@ -40,6 +41,7 @@ function SelectTrigger({
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       data-size={size}
+      type={type}
       className={cn(
         "group flex w-full items-center justify-between gap-2 whitespace-nowrap rounded-lg border-0 font-medium outline-none",
         "bg-surface-3 text-foreground shadow-overview-metric hover:bg-surface-2",
@@ -62,6 +64,13 @@ function SelectTrigger({
   );
 }
 
+function isSelectTriggerTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest('[data-slot="select-trigger"]') != null
+  );
+}
+
 function SelectContent({
   className,
   children,
@@ -79,7 +88,7 @@ function SelectContent({
         data-slot="select-content"
         className={cn(
           liftedPopoverSurfaceClassName,
-          "relative z-[110] max-h-96 min-w-[8rem] overflow-hidden rounded-md",
+          "relative z-[110] max-h-44 min-w-[8rem] overflow-hidden rounded-md",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1",
           className,
@@ -90,6 +99,7 @@ function SelectContent({
           onCloseAutoFocus?.(event);
         }}
         onPointerDownOutside={(event) => {
+          if (isSelectTriggerTarget(event.target)) return;
           event.preventDefault();
           onDismiss?.();
           onPointerDownOutside?.(event);
@@ -99,7 +109,7 @@ function SelectContent({
         <SelectScrollUpButton />
         <SelectPrimitive.Viewport
           className={cn(
-            "p-1",
+            "max-h-40 overflow-y-auto p-1",
             position === "popper" &&
               "w-full min-w-[var(--radix-select-trigger-width)] scroll-my-1",
           )}
@@ -239,6 +249,9 @@ export interface SelectFieldProps {
   triggerClassName?: string;
   size?: SelectSize;
   id?: string;
+  labelClassName?: string;
+  contentSide?: "top" | "right" | "bottom" | "left";
+  avoidCollisions?: boolean;
 }
 
 function SelectField({
@@ -255,6 +268,9 @@ function SelectField({
   triggerClassName,
   size = "md",
   id,
+  labelClassName,
+  contentSide = "bottom",
+  avoidCollisions = false,
 }: SelectFieldProps) {
   const fieldId =
     id ?? (label ? label.toLowerCase().replace(/\s+/g, "-") : undefined);
@@ -285,7 +301,10 @@ function SelectField({
       {label && (
         <label
           htmlFor={fieldId}
-          className="mb-1 block text-sm font-medium text-slate-700"
+          className={cn(
+            "mb-1 block text-sm font-medium text-slate-700",
+            labelClassName,
+          )}
         >
           {label}
         </label>
@@ -314,13 +333,18 @@ function SelectField({
             </span>
           </SelectValue>
         </SelectTrigger>
-        <SelectContent onDismiss={dismiss}>
+        <SelectContent
+          side={contentSide}
+          avoidCollisions={avoidCollisions}
+          sideOffset={4}
+          onDismiss={dismiss}
+        >
           {children}
         </SelectContent>
       </Select>
       {error && <p className="mt-1 text-xs text-danger">{error}</p>}
       {helperText && !error && (
-        <p className="mt-1 text-xs text-muted-foreground">{helperText}</p>
+        <p className="mt-2 text-xs text-muted-foreground">{helperText}</p>
       )}
     </div>
   );

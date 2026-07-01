@@ -9,14 +9,12 @@ import { Button } from "@/components/ui/Button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
 } from "@/components/ui/Card";
 import { CheckoutSummary } from "@/components/caja/CheckoutSummary";
 import { getOrder, getCustomers, getDebtByOrderId } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { getPaymentMethodLabel } from "@/lib/utils/paymentMethod";
-import { mockEmployees } from "@/lib/mock/seed";
+import { useEmployeeStore } from "@/lib/store/employee";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
@@ -107,7 +105,9 @@ export default function OrdenDetallePage() {
   }
 
   const customer = customers.find((c) => c.id === order.customer_id);
-  const employee = mockEmployees.find((e) => e.id === order.employee_id);
+  const currentEmployee = useEmployeeStore((s) => s.current);
+  const employee =
+    currentEmployee?.id === order.employee_id ? currentEmployee : null;
 
   const statusVariant =
     order.status === "confirmed"

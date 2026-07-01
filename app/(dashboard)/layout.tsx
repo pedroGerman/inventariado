@@ -1,7 +1,7 @@
 "use client";
 
 import { BottomNav } from "@/components/layout/BottomNav";
-import { EmployeeProvider } from "@/components/providers/EmployeeProvider";
+import { AppSessionProvider } from "@/components/providers/AppSessionProvider";
 
 export default function DashboardLayout({
   children,
@@ -9,11 +9,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <EmployeeProvider>
+    <AppSessionProvider>
       <div className="mx-auto min-h-screen max-w-mobile bg-white pb-24">
         {children}
       </div>
       <BottomNav />
-    </EmployeeProvider>
+    </AppSessionProvider>
   );
 }

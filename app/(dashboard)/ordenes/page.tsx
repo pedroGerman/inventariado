@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronRight, DollarSign, Search } from "lucide-react";
+import { DollarSign, Search } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { getOrders, getCustomers } from "@/lib/mock/db";
@@ -10,6 +10,7 @@ import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDateGroup, formatTime } from "@/lib/utils/date";
 import { TextField } from "@/components/ui/Input";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function OrdenesPage() {
   useMockDBRefresh();
@@ -53,29 +54,19 @@ export default function OrdenesPage() {
                 Ir a deudas
               </Button>
             </Link>
-
-
-
-
-            {/* <Input
-              type="date"
-              value={filterDate}
-              onChange={(e) => setFilterDate(e.target.value)}
-              className="w-full text-sm rounded-xl border border-slate-200 px-4 py-3"
-            /> */}
           </div>
         </div>
 
         {Object.entries(grouped).map(([date, dateOrders]) => (
-          <div key={date} className="mb-6 flex flex-col gap-1">
+          <div key={date} className="flex flex-col gap-1">
             <h2 className="mb-2 text-sm font-semibold capitalize text-slate-500">
               {formatDateGroup(date)}
             </h2>
-            <div className="divide-y divide-slate-200 flex flex-col">
+            <div className=" divide-y divide-slate-200 flex flex-col">
               {dateOrders.map((order) => {
                 const customer = customers.find((c) => c.id === order.customer_id);
                 return (
-                  <div key={order.id} className="gap-0 py-5">
+                  <div key={order.id} className="gap-0 py-4">
                     <Link
                       href={`/ordenes/${order.id}`}
                       className="flex w-full items-center gap-3 text-left"
@@ -112,7 +103,7 @@ export default function OrdenesPage() {
         ))}
 
         {filtered.length === 0 && (
-          <p className="py-12 text-center text-slate-500">No hay órdenes</p>
+          <EmptyState title="No hay órdenes" description="Las ventas completadas aparecerán aquí." />
         )}
       </div>
     </>

@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
-import { getAccountProfile } from "@/lib/mock/db";
-import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
+import { getProfile } from "@/lib/profile/actions";
+import type { AccountProfile } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
 
 interface AccountProfileHeaderProps {
@@ -11,8 +12,15 @@ interface AccountProfileHeaderProps {
 }
 
 export function AccountProfileHeader({ className }: AccountProfileHeaderProps) {
-  useMockDBRefresh();
-  const account = getAccountProfile();
+  const [account, setAccount] = useState<AccountProfile | null>(null);
+
+  useEffect(() => {
+    void getProfile().then(setAccount);
+  }, []);
+
+  const initial = account?.full_name?.charAt(0) ?? "?";
+  const displayName = account?.full_name?.trim() || "Tu cuenta";
+  const username = account?.username?.trim() || "usuario";
 
   return (
     <section
@@ -22,7 +30,7 @@ export function AccountProfileHeader({ className }: AccountProfileHeaderProps) {
       )}
     >
       <div className="flex size-24 items-center justify-center overflow-hidden rounded-full border-2 border-slate-900 bg-surface-2 text-3xl font-bold text-card-foreground shadow-card-edge">
-        {account.avatar_url ? (
+        {account?.avatar_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={account.avatar_url}
@@ -30,13 +38,13 @@ export function AccountProfileHeader({ className }: AccountProfileHeaderProps) {
             className="size-full object-cover"
           />
         ) : (
-          account.full_name.charAt(0)
+          initial
         )}
       </div>
 
       <div className="space-y-1">
-        <h2 className="text-xl font-bold text-slate-900">{account.full_name}</h2>
-        <p className="text-sm text-muted-foreground">@{account.username}</p>
+        <h2 className="text-xl font-bold text-slate-900">{displayName}</h2>
+        <p className="text-sm text-muted-foreground">@{username}</p>
       </div>
 
       <Button

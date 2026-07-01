@@ -9,6 +9,7 @@ import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDateGroup, formatTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ffElevatedWarningSurfaceClass } from "@/lib/utils/ff-surfaces";
 
 type DebtTab = "collect" | "pay";
@@ -211,11 +212,13 @@ export default function DeudasPage() {
         ))}
 
         {displayDebts.length === 0 && (
-          <p className="py-12 text-center text-muted-foreground">
-            {tab === "pay"
-              ? "No hay deudas por pagar"
-              : "No hay deudas pendientes por cobrar"}
-          </p>
+          <EmptyState
+            title={
+              tab === "pay"
+                ? "No hay deudas por pagar"
+                : "No hay deudas pendientes por cobrar"
+            }
+          />
         )}
       </div>
     </>

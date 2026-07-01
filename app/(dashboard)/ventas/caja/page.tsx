@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShoppingCart, UserPlus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
@@ -27,6 +27,14 @@ const paymentTabs: { id: PaymentType; label: string }[] = [
 ];
 
 export default function VentasCajaPage() {
+  return (
+    <Suspense fallback={null}>
+      <VentasCajaContent />
+    </Suspense>
+  );
+}
+
+function VentasCajaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { items, getTotal, clearCart } = useCartStore();
@@ -58,7 +66,7 @@ export default function VentasCajaPage() {
   function handleFinalize(toPay: number, received: number) {
     if (!current || items.length === 0) return;
 
-    const { order, debt } = finalizeSale({
+    void finalizeSale({
       items,
       employee: current,
       customerId: checkout.customer?.id ?? null,
@@ -69,17 +77,19 @@ export default function VentasCajaPage() {
       tax: checkout.tax,
       toPay,
       cashReceived: received > 0 ? received : undefined,
+    }).then(({ order, debt }) => {
+      clearCart();
+      checkout.reset();
+      setConfirmModal(false);
+
+      if (debt) {
+        router.push(`/deudas/${debt.id}`);
+        return;
+      }
+      router.push(`/ordenes/${order.id}?success=1`);
+    }).catch((err) => {
+      console.error("[finalizeSale]", err);
     });
-
-    clearCart();
-    checkout.reset();
-    setConfirmModal(false);
-
-    if (debt) {
-      router.push(`/deudas/${debt.id}`);
-      return;
-    }
-    router.push(`/ordenes/${order.id}?success=1`);
   }
 
   return (

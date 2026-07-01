@@ -6,8 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { TextField, Textarea } from "@/components/ui/Input";
 import { PhoneField } from "@/components/ui/PhoneField";
-import { saveCustomer, saveSupplier, uid } from "@/lib/mock/db";
-import { MOCK_BUSINESS_ID } from "@/lib/mock/seed";
+import { saveCustomer, saveSupplier, newEntityId, getActiveBusinessId } from "@/lib/mock/db";
 import type { Customer, Supplier } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
 import { normalizePhoneForSave } from "@/lib/utils/phone";
@@ -35,19 +34,19 @@ export function CustomerForm({
   const isCustomer = mode === "customer";
   const title = isCustomer ? "Nuevo Cliente" : "Nuevo Proveedor";
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) return;
 
     if (isCustomer) {
       const customer: Customer = {
-        id: uid("cust"),
-        business_id: MOCK_BUSINESS_ID,
+        id: newEntityId(),
+        business_id: getActiveBusinessId(),
         name: name.trim(),
         phone: normalizePhoneForSave(phone),
         extra_info: extra || null,
         created_at: new Date().toISOString(),
       };
-      saveCustomer(customer);
+      await saveCustomer(customer);
 
       if (returnTo) {
         const params = new URLSearchParams();
@@ -61,14 +60,14 @@ export function CustomerForm({
       }
     } else {
       const supplier: Supplier = {
-        id: uid("sup"),
-        business_id: MOCK_BUSINESS_ID,
+        id: newEntityId(),
+        business_id: getActiveBusinessId(),
         name: name.trim(),
         phone: normalizePhoneForSave(phone),
         nit: nit || null,
         created_at: new Date().toISOString(),
       };
-      saveSupplier(supplier);
+      await saveSupplier(supplier);
 
       if (returnTo) {
         const params = new URLSearchParams();
@@ -149,7 +148,7 @@ export function CustomerForm({
           fullWidth
           variant="success"
           disabled={!name.trim()}
-          onClick={handleSave}
+          onClick={() => void handleSave()}
         >
           Guardar
         </Button>

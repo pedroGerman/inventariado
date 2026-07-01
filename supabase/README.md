@@ -36,11 +36,27 @@ La **Publishable key** del dashboard es la misma que la **anon key** — no la p
 
 ## Storage
 
-Bucket `product-images` (público). Sube archivos con ruta:
+Bucket **`product-images`** (público). Rutas por negocio:
 
 ```
-{business_id}/nombre-archivo.jpg
+{business_id}/categories/{category_id}.{ext}
+{business_id}/products/{product_id}.{ext}
+{business_id}/avatars/{user_id}.{ext}
+{business_id}/logo.{ext}
 ```
+
+La app usa `lib/storage/uploadPlatformImage()`:
+
+- **Mock** (`NEXT_PUBLIC_USE_MOCK=true` o sin credenciales Supabase): guarda data URLs en localStorage.
+- **Supabase**: sube al bucket y guarda la URL pública en `image_url` / `avatar_url`.
+
+## Migraciones
+
+Ejecutar en orden:
+
+1. `001_initial_schema.sql`
+2. `002_add_transfer_payment_method.sql`
+3. `003_profiles.sql` — tabla `profiles` + avatar de usuario
 
 ## Extensibilidad
 

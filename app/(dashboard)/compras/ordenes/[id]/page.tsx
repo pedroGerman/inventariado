@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { CheckoutSummary } from "@/components/caja/CheckoutSummary";
 import { getPurchase, getSuppliers } from "@/lib/mock/db";
-import { mockEmployees } from "@/lib/mock/seed";
+import { useEmployeeStore } from "@/lib/store/employee";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
@@ -91,7 +91,9 @@ export default function CompraDetallePage() {
   }
 
   const supplier = suppliers.find((s) => s.id === purchase.supplier_id);
-  const employee = mockEmployees.find((e) => e.id === purchase.employee_id);
+  const currentEmployee = useEmployeeStore((s) => s.current);
+  const employee =
+    currentEmployee?.id === purchase.employee_id ? currentEmployee : null;
 
   const statusVariant =
     purchase.status === "confirmed"

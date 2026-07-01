@@ -8,7 +8,7 @@ import { TextField } from "@/components/ui/Input";
 import { SelectField, SelectItem } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
-import { savePayment, uid } from "@/lib/mock/db";
+import { savePayment, newEntityId } from "@/lib/mock/db";
 
 interface PaymentModalProps {
   open: boolean;
@@ -30,6 +30,7 @@ export function PaymentModal({
   const [method, setMethod] = useState("cash");
   const [printReceipt, setPrintReceipt] = useState(true);
   const [partialAmount, setPartialAmount] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const payAmount = mode === "full" ? amount : parseFloat(partialAmount) || 0;
   const valid = payAmount > 0 && payAmount <= amount;
@@ -38,17 +39,25 @@ export function PaymentModal({
     if (!open) setPartialAmount("");
   }, [open]);
 
-  function handleAccept() {
-    if (!valid) return;
-    savePayment({
-      id: uid("pay"),
-      debt_id: debtId,
-      amount: payAmount,
-      method,
-      created_at: new Date().toISOString(),
-    });
-    onSuccess();
-    onClose();
+  async function handleAccept() {
+    if (!valid || saving) return;
+
+    setSaving(true);
+    try {
+      await savePayment({
+        id: newEntityId(),
+        debt_id: debtId,
+        amount: payAmount,
+        method,
+        created_at: new Date().toISOString(),
+      });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      console.error("[PaymentModal]", err);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -56,7 +65,6 @@ export function PaymentModal({
       open={open}
       onClose={onClose}
       title={mode === "full" ? "Cobrar Todo" : "Abonar"}
-      // fitContent
     >
       <div className="space-y-4">
         {mode === "full" && (
@@ -107,11 +115,24 @@ export function PaymentModal({
         )}
 
         <div className="flex gap-3">
-          <Button size="sm" className="!py-5 !rounded-lg" variant="secondary" fullWidth onClick={onClose}>
+          <Button
+            size="sm"
+            className="!rounded-lg !py-5"
+            variant="secondary"
+            fullWidth
+            disabled={saving}
+            onClick={onClose}
+          >
             Cancelar
           </Button>
-          <Button size="sm" className="!py-5 !rounded-lg" fullWidth disabled={!valid} onClick={handleAccept}>
-            Aceptar
+          <Button
+            size="sm"
+            className="!rounded-lg !py-5"
+            fullWidth
+            disabled={!valid || saving}
+            onClick={() => void handleAccept()}
+          >
+            {saving ? "Guardando…" : "Aceptar"}
           </Button>
         </div>
       </div>

@@ -8,7 +8,6 @@ import {
   Tags,
   Users,
   Wallet,
-  Settings,
   ChevronRight,
   RefreshCw,
 } from "lucide-react";
@@ -16,8 +15,9 @@ import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { logout } from "@/lib/auth/actions";
-import { mockEmployees } from "@/lib/mock/seed";
 import { useEmployeeStore } from "@/lib/store/employee";
+import { isMockMode } from "@/lib/config";
+import { mockEmployees } from "@/lib/mock/seed";
 import { Modal } from "@/components/ui/Modal";
 import { AccountProfileHeader } from "@/components/opciones/AccountProfileHeader";
 
@@ -32,8 +32,10 @@ const menuItems = [
 ];
 
 export default function OpcionesPage() {
+  const current = useEmployeeStore((s) => s.current);
   const setCurrent = useEmployeeStore((s) => s.setCurrent);
   const [employeeModal, setEmployeeModal] = useState(false);
+  const employees = isMockMode() ? mockEmployees : current ? [current] : [];
 
   return (
     <>
@@ -90,18 +92,22 @@ export default function OpcionesPage() {
           </Card>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              localStorage.removeItem("pos-mock-db");
-              window.location.reload();
-            }}
-            className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-3 text-sm text-slate-600"
-          >
-            <RefreshCw className="h-4 w-4" /> Actualizar base de datos
-          </button>
+        {isMockMode() && (
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                localStorage.removeItem("pos-mock-db");
+                window.location.reload();
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-200 py-3 text-sm text-slate-600"
+            >
+              <RefreshCw className="h-4 w-4" /> Actualizar base de datos
+            </button>
+          </div>
+        )}
 
+        <div className="flex flex-col gap-3">
           <Button
             type="button"
             variant="danger"
@@ -119,7 +125,7 @@ export default function OpcionesPage() {
 
       <Modal open={employeeModal} onClose={() => setEmployeeModal(false)} title="Cambiar empleado">
         <div className="space-y-2">
-          {mockEmployees.map((emp) => (
+          {employees.map((emp) => (
             <button
               key={emp.id}
               type="button"

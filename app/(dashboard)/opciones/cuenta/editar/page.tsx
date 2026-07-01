@@ -1,17 +1,19 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Input";
+import { AvatarImagePicker } from "@/components/ui/AvatarImagePicker";
 import {
   getAccountProfile,
   getBusiness,
   saveAccountProfile,
   saveBusiness,
 } from "@/lib/mock/db";
+import { isMockMode } from "@/lib/config";
+import { saveProfile } from "@/lib/profile/actions";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useEmployeeStore } from "@/lib/store/employee";
 
@@ -27,7 +29,6 @@ function slugifyUsername(value: string) {
 export default function EditarCuentaPage() {
   useMockDBRefresh();
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const currentEmployee = useEmployeeStore((s) => s.current);
   const setCurrentEmployee = useEmployeeStore((s) => s.setCurrent);
 
@@ -48,35 +49,30 @@ export default function EditarCuentaPage() {
     email.trim().length > 0 &&
     businessName.trim().length > 0;
 
-  function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        setAvatarUrl(reader.result);
-      }
-    };
-    reader.readAsDataURL(file);
-    event.target.value = "";
-  }
-
-  function handleSave() {
+  async function handleSave() {
     if (!valid) return;
 
     const trimmedName = fullName.trim();
     const trimmedUsername =
       username.trim() || slugifyUsername(trimmedName) || "usuario";
 
-    saveAccountProfile({
-      ...initialAccount,
+    const profilePayload = {
       full_name: trimmedName,
       email: email.trim(),
       username: trimmedUsername,
       phone: phone.trim() || null,
       avatar_url: avatarUrl,
-    });
+    };
+
+    if (isMockMode()) {
+      saveAccountProfile({
+        ...initialAccount,
+        ...profilePayload,
+      });
+    } else {
+      const result = await saveProfile(profilePayload);
+      if (result.error) return;
+    }
 
     saveBusiness({
       ...initialBusiness,
@@ -99,31 +95,12 @@ export default function EditarCuentaPage() {
 
       <div className="flex flex-col gap-6 px-4 pb-28 pt-5">
         <section className="flex flex-col items-center gap-3 text-center">
-          <div className="relative">
-            <div className="flex size-20 items-center justify-center overflow-hidden rounded-full border-2 border-slate-900 bg-surface-2 text-2xl font-bold text-card-foreground shadow-card-edge">
-              {avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={avatarUrl} alt="" className="size-full object-cover" />
-              ) : (
-                fullName.charAt(0) || "U"
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full bg-slate-900 text-white shadow-md"
-              aria-label="Cambiar foto de perfil"
-            >
-              <Camera className="size-4" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="sr-only"
-              onChange={handleAvatarChange}
-            />
-          </div>
+          <AvatarImagePicker
+            imageUrl={avatarUrl}
+            onChange={setAvatarUrl}
+            userId={initialAccount.user_id}
+            fallbackLabel={fullName.trim() || "U"}
+          />
 
           <div className="space-y-1">
             <p className="text-lg font-bold text-slate-900">

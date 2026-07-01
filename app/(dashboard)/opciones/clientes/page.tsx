@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -10,9 +10,9 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { getCustomers, getSuppliers, getDebts } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
-import { formatPhoneDisplay } from "@/lib/utils/phone";
+import { ContactRow } from "@/components/clientes/ContactRow";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils/cn";
-import { ffElevatedIconShellClassName } from "@/lib/utils/ff-surfaces";
 
 function SummaryMetric({
   label,
@@ -34,59 +34,6 @@ function SummaryMetric({
       >
         {value}
       </span>
-    </div>
-  );
-}
-
-function ContactRow({
-  name,
-  phone,
-  tone = "success",
-  showWhatsApp = false,
-}: {
-  name: string;
-  phone?: string | null;
-  tone?: "success" | "danger";
-  showWhatsApp?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-3 py-3.5">
-      <div
-        className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-          tone === "success"
-            ? "bg-primary/10 text-[var(--button-success)]"
-            : "bg-destructive/10 text-destructive",
-        )}
-      >
-        {name.charAt(0)}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-card-foreground">
-          {name}
-        </p>
-        {phone ? (
-          <p className="text-xs text-muted-foreground">
-            {formatPhoneDisplay(phone)}
-          </p>
-        ) : (
-          <p className="text-xs text-muted-foreground">Sin teléfono</p>
-        )}
-      </div>
-      {/* {showWhatsApp && phone ? (
-        <a
-          href={`https://wa.me/1${phone}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            ffElevatedIconShellClassName,
-            "size-9 rounded-full text-[var(--button-success)]",
-          )}
-          aria-label={`WhatsApp ${name}`}
-        >
-          <MessageCircle className="h-4 w-4" />
-        </a>
-      ) : null} */}
     </div>
   );
 }
@@ -152,11 +99,18 @@ export default function ClientesPage() {
           </h2>
             <div className="px-1">
               {list.length === 0 ? (
-                <p className="py-8 text-center text-sm text-muted-foreground">
-                  {isCustomers
-                    ? "No hay clientes registrados"
-                    : "No hay proveedores registrados"}
-                </p>
+                <EmptyState
+                  title={
+                    isCustomers
+                      ? "No hay clientes registrados"
+                      : "No hay proveedores registrados"
+                  }
+                  description={
+                    isCustomers
+                      ? "Usa el botón + para agregar un cliente."
+                      : "Usa el botón + para agregar un proveedor."
+                  }
+                />
               ) : (
                 <div className="divide-y divide-border/50">
                   {list.map((item) => (
@@ -165,7 +119,6 @@ export default function ClientesPage() {
                       name={item.name}
                       phone={item.phone}
                       tone={isCustomers ? "success" : "danger"}
-                      showWhatsApp={isCustomers}
                     />
                   ))}
                 </div>

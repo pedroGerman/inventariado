@@ -3,8 +3,20 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { isMockMode, MOCK_SESSION_COOKIE } from "@/lib/config";
+import { fetchMyBusiness } from "@/lib/business/resolve";
+import {
+  isMockMode,
+  MOCK_ONBOARDING_COOKIE,
+  MOCK_SESSION_COOKIE,
+} from "@/lib/config";
 import { isPasswordValid } from "@/lib/auth/password";
+import { ensureProfileForUser } from "@/lib/profile/actions";
+
+async function redirectAfterAuth() {
+  const supabase = await createClient();
+  const business = await fetchMyBusiness(supabase);
+  redirect(business ? "/" : "/onboarding");
+}
 
 export async function login(formData: FormData) {
   const email = formData.get("email") as string;
@@ -17,7 +29,8 @@ export async function login(formData: FormData) {
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
     });
-    redirect("/");
+    cookieStore.delete(MOCK_ONBOARDING_COOKIE);
+    redirect("/onboarding");
   }
 
   const supabase = await createClient();
@@ -27,7 +40,7 @@ export async function login(formData: FormData) {
     return { error: error.message };
   }
 
-  redirect("/");
+  await redirectAfterAuth();
 }
 
 export async function signup(formData: FormData) {
@@ -54,6 +67,7 @@ export async function signup(formData: FormData) {
       path: "/",
       maxAge: 60 * 60 * 24 * 7,
     });
+    cookieStore.delete(MOCK_ONBOARDING_COOKIE);
     redirect("/onboarding");
   }
 
@@ -70,6 +84,10 @@ export async function signup(formData: FormData) {
     return { error: error.message };
   }
 
+  if (data.user) {
+    await ensureProfileForUser(data.user.id, name, email);
+  }
+
   if (data.session) {
     redirect("/onboarding");
   }
@@ -84,6 +102,7 @@ export async function logout() {
   if (isMockMode()) {
     const cookieStore = await cookies();
     cookieStore.delete(MOCK_SESSION_COOKIE);
+    cookieStore.delete(MOCK_ONBOARDING_COOKIE);
     redirect("/login");
   }
 

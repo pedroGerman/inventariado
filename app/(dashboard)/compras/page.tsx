@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ClipboardList, QrCode, Settings } from "lucide-react";
+import { ClipboardList, Settings } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { CategoryTabs } from "@/components/ventas/CategoryTabs";
 import { ProductCard } from "@/components/ventas/ProductCard";
 import { QuickSaleModal } from "@/components/ventas/QuickSaleModal";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { getCategories, getProducts, uid } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useCartStore } from "@/lib/store/cart";
@@ -96,6 +97,14 @@ export default function ComprasPage() {
           />
         ))}
       </div>
+
+      {products.length === 0 && (
+        <EmptyState
+          title="No hay productos"
+          description="Agrega productos para registrarlos en compras."
+          className="min-h-[160px] py-8"
+        />
+      )}
 
       <QuickSaleModal
         open={quickOpen}

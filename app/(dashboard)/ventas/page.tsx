@@ -12,6 +12,7 @@ import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useCartStore } from "@/lib/store/cart";
 import { uid } from "@/lib/mock/db";
 import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { TextField } from "@/components/ui/Input";
 
 export default function VentasPage() {
@@ -61,13 +62,12 @@ export default function VentasPage() {
         }
       />
 
-      <div className="px-4 py-3">
+      <div className="px-4 py-3 flex flex-col gap-3">
         <TextField
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar producto..."
           leftIcon={<Search className="h-4 w-4" />}
-          className="mb-3"
         />
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -96,6 +96,14 @@ export default function VentasPage() {
           <ProductCard key={p.id} product={p} onClick={() => handleAddProduct(p)} />
         ))}
       </div>
+
+      {products.length === 0 && (
+        <EmptyState
+          title="No hay productos"
+          description="Agrega productos en Opciones para vender desde aquí."
+          className="min-h-[160px] py-8"
+        />
+      )}
 
       <QuickSaleModal open={quickOpen} onClose={() => setQuickOpen(false)} mode="sale" />
     </>
