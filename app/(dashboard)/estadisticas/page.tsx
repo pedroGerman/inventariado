@@ -42,15 +42,16 @@ function SummaryCard({
   rows,
 }: {
   title: string;
-  titleClass: string;
+  titleClass?: string;
   rows: { label: string; value: string }[];
 }) {
   return (
-    <Card className="overflow-hidden px-3.5 !gap-3">
-      <div className="border-b border-slate-100 px-0.5">
+    // <Card className="overflow-hidden px-3.5 !gap-3">
+    <div className="flex flex-col gap-3 py-1">
+      <div className="border- border-slate-100 px-0.5">
         <h3 className={cn("text-sm font-semibold", titleClass)}>{title}</h3>
       </div>
-      <div className="divide- flex flex-col gap-1">
+      <div className="divide- flex flex-col gap-1.5">
         {rows.map((row) => (
           <div
             key={row.label}
@@ -61,7 +62,8 @@ function SummaryCard({
           </div>
         ))}
       </div>
-    </Card>
+    </div>
+    // </Card>
   );
 }
 
@@ -70,15 +72,23 @@ function StatCard({
   label,
   value,
   color = "text-primary",
+  href,
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   color?: string;
+  href?: string;
 }) {
-  return (
-    <Card className="flex !flex-row items-center !py-3 !gap-4 px-3.5">
-      <div className={cn("rounded-xl w-min bg-slate-100 ", color)}>
+  const card = (
+    <Card
+      className={cn(
+        "flex !flex-row items-center !py-3 !gap-2.5 px-3.5",
+        href &&
+          "transition-[box-shadow,transform] hover:shadow-ff-surface-4 active:scale-[0.99]",
+      )}
+    >
+      <div className={cn("rounded-xl w-min p-1.5", color)}>
         <Icon className="h-6 w-6" />
       </div>
       <div>
@@ -87,6 +97,16 @@ function StatCard({
       </div>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        {card}
+      </Link>
+    );
+  }
+
+  return card;
 }
 
 export default function EstadisticasPage() {
@@ -173,10 +193,10 @@ export default function EstadisticasPage() {
         </div>
 
         <div className="flex flex-col gap-10">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-10">
             <SummaryCard
               title="Ventas"
-              titleClass="text-primary"
+              // titleClass="text-primary"
               rows={[
                 { label: "Total", value: formatCurrency(stats.salesTotal) },
                 { label: "Por cobrar", value: formatCurrency(stats.pendingCollect) },
@@ -185,7 +205,7 @@ export default function EstadisticasPage() {
 
             <SummaryCard
               title="Gastos/Compras"
-              titleClass="text-danger"
+              // titleClass="text-danger"
               rows={[
                 { label: "Total", value: formatCurrency(stats.purchasesTotal) },
                 { label: "Por pagar", value: formatCurrency(stats.pendingPay) },
@@ -212,19 +232,27 @@ export default function EstadisticasPage() {
                   icon={Package}
                   label="Productos"
                   value={String(businessStats.totalProducts)}
+                  href="/productos"
                 />
-                <StatCard icon={Users} label="Clientes" value={String(businessStats.totalCustomers)} />
+                <StatCard
+                  icon={Users}
+                  label="Clientes"
+                  value={String(businessStats.totalCustomers)}
+                  href="/opciones/clientes"
+                />
                 <StatCard
                   icon={AlertTriangle}
                   label="Agotados"
                   value={String(businessStats.outOfStock)}
                   color="text-danger"
+                  href="/productos"
                 />
                 <StatCard
                   icon={AlertTriangle}
                   label="Stock bajo"
                   value={String(businessStats.lowStock)}
                   color="text-warning"
+                  href="/productos"
                 />
               </div>
             </div>
@@ -264,52 +292,77 @@ export default function EstadisticasPage() {
               </Card>
             </div>
 
-            <Card className="px-3.5">
-              <div className="mb-1 flex flex-col gap-0.5">
-                <h3 className="font-semibold text-sm">Productos más vendidos</h3>
-                <p className="text-xs text-slate-500">{activePeriodLabel}</p>
-              </div>
-              <div className="flex flex-col gap-6">
-                {topProducts.length > 0 ? (
-                  topProducts.map(({ product, sold }, i) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center justify-between text-sm last:border-0"
-                    >
-                      <span>
-                        {i + 1}. {product.name}
-                      </span>
-                      <span className="font-medium text-primary">{sold} uds.</span>
-                    </div>
-                  ))
-                ) : (
-                  <p className="py-4 text-center text-sm text-slate-400">
-                    Sin ventas en {activePeriodLabel.toLowerCase()}
-                  </p>
-                )}</div>
-            </Card>
-
-            {ordersInPeriod.length > 0 && (
-              <Card className="px-3.5">
-                <div className="mb-1 flex flex-col gap-0.5">
-                  {/* <TrendingUp className="h-4 w-4 text-primary" /> */}
-                  <h3 className="font-semibold text-sm">Ventas del periodo</h3>
+            {topProducts.length > 0 ? (
+              <div className="flex flex-col gap-2 px-1">
+                <div className="flex flex-col gap-0.5">
+                  <h2 className="text-base font-semibold text-card-foreground">
+                    Productos más vendidos
+                  </h2>
                   <p className="text-xs text-slate-500">{activePeriodLabel}</p>
                 </div>
-                <div className="flex flex-col gap-3">
+                <div className="divide-y divide-border/40">
+                  {topProducts.map(({ product, sold, revenue }) => (
+                    <div
+                      key={product.id}
+                      className="flex items-center justify-between gap-3 py-3 text-sm"
+                    >
+                      <span className="text-card-foreground">
+                        {product.name}{" "}
+                        <span className="text-muted-foreground">×{sold}</span>
+                      </span>
+                      <span className="shrink-0 text-xs font-medium tabular-nums text-slate-600">
+                        {formatCurrency(revenue)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Card className="px-3.5">
+                <div className="mb-1 flex flex-col gap-0.5">
+                  <h3 className="font-semibold text-sm">Productos más vendidos</h3>
+                  <p className="text-xs text-slate-500">{activePeriodLabel}</p>
+                </div>
+                <p className="py-4 text-center text-sm text-slate-400">
+                  Sin ventas en {activePeriodLabel.toLowerCase()}
+                </p>
+              </Card>
+            )}
+
+            {ordersInPeriod.length > 0 ? (
+              <div className="flex flex-col gap-2 px-1">
+                <div className="flex flex-col gap-0.5">
+                  <h2 className="text-base font-semibold text-card-foreground">
+                    Ventas del periodo
+                  </h2>
+                  <p className="text-xs text-slate-500">{activePeriodLabel}</p>
+                </div>
+                <div className="divide-y divide-border/40">
                   {ordersInPeriod.map((o) => (
                     <Link
                       key={o.id}
                       href={`/ordenes/${o.id}`}
-                      className="flex justify-between border-b border-slate-50 text-sm last:border-0 hover:text-primary"
+                      className="flex items-center justify-between gap-3 py-3 text-sm"
                     >
-                      <span className="font-medium">{o.order_number}</span>
-                      <span>
-                        <span className="font-medium">{formatCurrency(o.total)}</span> · {formatTime(o.created_at)}
+                      <span className="font-medium text-card-foreground">
+                        {o.order_number}
+                      </span>
+                      <span className="shrink-0 text-xs font-medium tabular-nums text-slate-600">
+                        {formatCurrency(o.total)} · {formatTime(o.created_at)}
                       </span>
                     </Link>
                   ))}
                 </div>
+              </div>
+            ) : (
+              <Card className="px-3.5">
+                <div className="mb-1 flex flex-col gap-0.5">
+                  <h3 className="font-semibold text-sm">Ventas del periodo</h3>
+                  <p className="text-xs text-slate-500">{activePeriodLabel}</p>
+                </div>
+                <p className="py-4 text-center text-sm text-slate-400">
+                  Sin ventas en {activePeriodLabel.toLowerCase()}
+                </p>
               </Card>
             )}
 

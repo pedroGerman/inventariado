@@ -63,10 +63,10 @@ function VentasCajaPageContent() {
     checkout.tax -
     (checkout.includeDiscount ? checkout.discount : 0);
 
-  function handleFinalize(toPay: number, received: number) {
+  async function handleFinalize(toPay: number, received: number) {
     if (!current || items.length === 0) return;
 
-    const { order, debt } = finalizeSale({
+    const { order, debt } = await finalizeSale({
       items,
       employee: current,
       customerId: checkout.customer?.id ?? null,

@@ -1,6 +1,11 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isMockMode, MOCK_SESSION_COOKIE } from "@/lib/config";
+import { fetchMyBusiness } from "@/lib/business/resolve";
+import {
+  isMockMode,
+  MOCK_ONBOARDING_COOKIE,
+  MOCK_SESSION_COOKIE,
+} from "@/lib/config";
 
 function isPublicAuthRoute(pathname: string) {
   return pathname.startsWith("/login") || pathname.startsWith("/signup");
@@ -8,9 +13,13 @@ function isPublicAuthRoute(pathname: string) {
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  const isOnboarding = pathname.startsWith("/onboarding");
 
   if (isMockMode()) {
-    const hasSession = request.cookies.get(MOCK_SESSION_COOKIE)?.value === "1";
+    const hasSession =
+      request.cookies.get(MOCK_SESSION_COOKIE)?.value === "1";
+    const onboardingDone =
+      request.cookies.get(MOCK_ONBOARDING_COOKIE)?.value === "1";
 
     if (!hasSession && !isPublicAuthRoute(pathname)) {
       const url = request.nextUrl.clone();
@@ -19,6 +28,18 @@ export async function updateSession(request: NextRequest) {
     }
 
     if (hasSession && isPublicAuthRoute(pathname)) {
+      const url = request.nextUrl.clone();
+      url.pathname = onboardingDone ? "/" : "/onboarding";
+      return NextResponse.redirect(url);
+    }
+
+    if (hasSession && !onboardingDone && !isPublicAuthRoute(pathname) && !isOnboarding) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/onboarding";
+      return NextResponse.redirect(url);
+    }
+
+    if (hasSession && onboardingDone && isOnboarding) {
       const url = request.nextUrl.clone();
       url.pathname = "/";
       return NextResponse.redirect(url);
@@ -54,38 +75,30 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isOnboarding = pathname.startsWith("/onboarding");
-
   if (!user && !isPublicAuthRoute(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
+  const business = user ? await fetchMyBusiness(supabase) : null;
+
   if (user && isPublicAuthRoute(pathname)) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = business ? "/" : "/onboarding";
     return NextResponse.redirect(url);
   }
 
-  if (user && !isPublicAuthRoute(pathname) && !isOnboarding) {
-    const { data: business } = await supabase.rpc("get_my_business");
-
-    if (!business) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/onboarding";
-      return NextResponse.redirect(url);
-    }
+  if (user && !isPublicAuthRoute(pathname) && !isOnboarding && !business) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/onboarding";
+    return NextResponse.redirect(url);
   }
 
-  if (user && isOnboarding) {
-    const { data: business } = await supabase.rpc("get_my_business");
-
-    if (business) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/";
-      return NextResponse.redirect(url);
-    }
+  if (user && isOnboarding && business) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
   }
 
   return supabaseResponse;

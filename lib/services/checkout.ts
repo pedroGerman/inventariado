@@ -1,7 +1,6 @@
 import type { CartItem } from "@/lib/store/cart";
 import type { Debt, Employee, Order } from "@/lib/types/database";
 import type { PaymentMethod, PaymentType } from "@/lib/types/database";
-import { generateOrderNumber } from "@/lib/utils/generateOrderNumber";
 import { todayISO } from "@/lib/utils/date";
 import {
   computeSalePaymentAmounts,
@@ -9,12 +8,15 @@ import {
 } from "@/lib/utils/salePayment";
 import {
   adjustStock,
+  getActiveBusinessId,
+  getBusiness,
+  newEntityId,
+  nextOrderNumber,
+  nextPurchaseNumber,
   saveDebt,
   saveOrder,
   savePurchase,
-  uid,
-} from "@/lib/mock/db";
-import { MOCK_BUSINESS_ID, mockCashRegister } from "@/lib/mock/seed";
+} from "@/lib/data/store";
 
 interface FinalizeSaleParams {
   items: CartItem[];
@@ -34,10 +36,12 @@ export interface FinalizeSaleResult {
   debt?: Debt;
 }
 
-export function finalizeSale(params: FinalizeSaleParams): FinalizeSaleResult {
+export async function finalizeSale(
+  params: FinalizeSaleParams,
+): Promise<FinalizeSaleResult> {
   const subtotal = params.items.reduce((s, i) => s + i.total_price, 0);
   const total = subtotal + params.tax + params.service - params.discount;
-  const orderId = uid("ord");
+  const orderId = newEntityId();
   const now = new Date().toISOString();
   const payment = computeSalePaymentAmounts(
     total,
@@ -47,13 +51,16 @@ export function finalizeSale(params: FinalizeSaleParams): FinalizeSaleResult {
     params.cashReceived,
   );
 
+  const businessId = getActiveBusinessId() || getBusiness().id;
+  const orderNumber = await nextOrderNumber(businessId);
+
   const order: Order = {
     id: orderId,
-    business_id: MOCK_BUSINESS_ID,
+    business_id: businessId,
     employee_id: params.employee.id,
     customer_id: params.customerId,
-    register_id: mockCashRegister.id,
-    order_number: generateOrderNumber("sale"),
+    register_id: null,
+    order_number: orderNumber,
     status: "confirmed",
     payment_method: params.paymentMethod,
     payment_type: params.paymentType,
@@ -67,7 +74,7 @@ export function finalizeSale(params: FinalizeSaleParams): FinalizeSaleResult {
     cash_received: payment.cashReceived,
     change: payment.change,
     items: params.items.map((item) => ({
-      id: uid("oi"),
+      id: newEntityId(),
       order_id: orderId,
       product_id: item.product_id,
       name: item.name,
@@ -77,26 +84,30 @@ export function finalizeSale(params: FinalizeSaleParams): FinalizeSaleResult {
     })),
   };
 
-  saveOrder(order);
+  await saveOrder(order);
 
-  params.items.forEach((item) => {
-    if (item.product_id) adjustStock(item.product_id, -item.quantity);
-  });
+  await Promise.all(
+    params.items.map((item) =>
+      item.product_id
+        ? adjustStock(item.product_id, -item.quantity)
+        : Promise.resolve(),
+    ),
+  );
 
   let debt: Debt | undefined;
   if (payment.balanceDue > 0 && params.customerId) {
     debt = {
-      id: uid("debt"),
+      id: newEntityId(),
       order_id: orderId,
       customer_id: params.customerId,
-      business_id: MOCK_BUSINESS_ID,
+      business_id: businessId,
       total,
       paid: payment.amountApplied,
       remaining: payment.balanceDue,
       status: debtStatusFromAmounts(total, payment.amountApplied),
       created_at: now,
     };
-    saveDebt(debt);
+    await saveDebt(debt);
   }
 
   return { order, debt };
@@ -112,19 +123,22 @@ interface FinalizePurchaseParams {
   tax: number;
 }
 
-export function finalizePurchase(params: FinalizePurchaseParams) {
+export async function finalizePurchase(params: FinalizePurchaseParams) {
   const subtotal = params.items.reduce((s, i) => s + i.total_price, 0);
   const total = subtotal + params.tax - params.discount;
-  const purchaseId = uid("pur");
+  const purchaseId = newEntityId();
   const now = new Date().toISOString();
+
+  const businessId = getActiveBusinessId() || getBusiness().id;
+  const purchaseNumber = await nextPurchaseNumber(businessId);
 
   const purchase = {
     id: purchaseId,
-    business_id: MOCK_BUSINESS_ID,
+    business_id: businessId,
     employee_id: params.employee.id,
     supplier_id: params.supplierId,
-    register_id: mockCashRegister.id,
-    purchase_number: generateOrderNumber("purchase"),
+    register_id: null,
+    purchase_number: purchaseNumber,
     status: "confirmed" as const,
     payment_method: params.paymentMethod,
     payment_type: params.paymentType,
@@ -135,7 +149,7 @@ export function finalizePurchase(params: FinalizePurchaseParams) {
     date: todayISO(),
     created_at: now,
     items: params.items.map((item) => ({
-      id: uid("pi"),
+      id: newEntityId(),
       purchase_id: purchaseId,
       product_id: item.product_id,
       name: item.name,
@@ -145,11 +159,15 @@ export function finalizePurchase(params: FinalizePurchaseParams) {
     })),
   };
 
-  savePurchase(purchase);
+  await savePurchase(purchase);
 
-  params.items.forEach((item) => {
-    if (item.product_id) adjustStock(item.product_id, item.quantity);
-  });
+  await Promise.all(
+    params.items.map((item) =>
+      item.product_id
+        ? adjustStock(item.product_id, item.quantity)
+        : Promise.resolve(),
+    ),
+  );
 
   return purchase;
 }

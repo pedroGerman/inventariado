@@ -144,23 +144,28 @@ export function getTopProducts(
   period: StatsPeriod,
   offset: number,
   limit = 5,
-): { product: Product; sold: number }[] {
+): { product: Product; sold: number; revenue: number }[] {
   const orders = getOrdersInPeriod(period, offset);
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { sold: number; revenue: number }>();
 
   orders.forEach((o) => {
     o.items?.forEach((item) => {
       if (item.product_id) {
-        counts.set(item.product_id, (counts.get(item.product_id) ?? 0) + item.quantity);
+        const current = counts.get(item.product_id) ?? { sold: 0, revenue: 0 };
+        counts.set(item.product_id, {
+          sold: current.sold + item.quantity,
+          revenue: current.revenue + item.total_price,
+        });
       }
     });
   });
 
   const products = getProducts();
   return [...counts.entries()]
-    .map(([id, sold]) => ({
+    .map(([id, { sold, revenue }]) => ({
       product: products.find((p) => p.id === id)!,
       sold,
+      revenue,
     }))
     .filter((x) => x.product)
     .sort((a, b) => b.sold - a.sold)
@@ -174,6 +179,41 @@ export function getOrdersInPeriod(period: StatsPeriod, offset: number): Order[] 
       o.status === "confirmed" &&
       (inRange(o.created_at, start, end) || inRangeDate(o.date, start, end)),
   );
+}
+
+export interface WeeklySalesSummary {
+  productsSold: number;
+  unitsSold: number;
+  salesTotal: number;
+  pendingCollect: number;
+  pendingPay: number;
+}
+
+export function getWeeklySalesSummary(): WeeklySalesSummary {
+  const orders = getOrdersInPeriod("week", 0);
+  const productIds = new Set<string>();
+  let unitsSold = 0;
+  let salesTotal = 0;
+
+  for (const order of orders) {
+    salesTotal += order.total;
+    order.items?.forEach((item) => {
+      if (item.product_id) {
+        productIds.add(item.product_id);
+        unitsSold += item.quantity;
+      }
+    });
+  }
+
+  const { pendingCollect, pendingPay } = getConsolidatedStats("week", 0);
+
+  return {
+    productsSold: productIds.size,
+    unitsSold,
+    salesTotal,
+    pendingCollect,
+    pendingPay,
+  };
 }
 
 export function getPurchasesInPeriod(period: StatsPeriod, offset: number): Purchase[] {

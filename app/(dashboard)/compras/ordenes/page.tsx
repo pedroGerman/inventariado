@@ -10,6 +10,7 @@ import { getPurchases, getSuppliers } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDateGroup, formatTime } from "@/lib/utils/date";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function ComprasOrdenesPage() {
   useMockDBRefresh();
@@ -102,7 +103,10 @@ export default function ComprasOrdenesPage() {
         ))}
 
         {filtered.length === 0 && (
-          <p className="py-12 text-center text-slate-500">No hay compras registradas</p>
+          <EmptyState
+            title="No hay compras registradas"
+            description="Las órdenes de compra aparecerán aquí."
+          />
         )}
       </div>
     </>

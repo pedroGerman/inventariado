@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -10,21 +9,34 @@ import { TextField } from "@/components/ui/Input";
 import { Toggle } from "@/components/ui/Toggle";
 import { SelectField, SelectItem } from "@/components/ui/Select";
 import { ImagePickerSection } from "@/components/ui/ImagePickerSection";
-import { getProducts, getCategories, getCategory, saveProduct, deleteProduct, uid, loadDB } from "@/lib/mock/db";
-import { MOCK_BUSINESS_ID } from "@/lib/mock/seed";
+import { QuickCategoryDrawer } from "@/components/categorias/QuickCategoryDrawer";
+import {
+  getProducts,
+  getCategories,
+  getCategory,
+  saveProduct,
+  deleteProduct,
+  newEntityId,
+  loadDB,
+  getActiveBusinessId,
+} from "@/lib/mock/db";
+import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
+import {
+  clearPlatformImage,
+  uploadPlatformImage,
+} from "@/lib/storage";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
-import type { Product, ProductType } from "@/lib/types/database";
+import type { Category, Product, ProductType } from "@/lib/types/database";
 
 export default function ProductoFormPage() {
+  useMockDBRefresh();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const isNew = id === "nuevo";
 
-  const existing = useMemo(
-    () => (isNew ? null : getProducts().find((p) => p.id === id) ?? null),
-    [id, isNew],
-  );
+  const existing = isNew ? null : getProducts().find((p) => p.id === id) ?? null;
 
+  const [entityId] = useState(() => existing?.id ?? newEntityId());
   const [name, setName] = useState(() => existing?.name ?? "");
   const [type, setType] = useState<ProductType>(() => existing?.type ?? "product");
   const [active, setActive] = useState(() => existing?.active ?? true);
@@ -41,14 +53,21 @@ export default function ProductoFormPage() {
   const [imageUrl, setImageUrl] = useState<string | null>(
     () => existing?.image_url ?? null,
   );
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false);
 
-  const categories = useMemo(() => {
-    const active = getCategories();
+  const activeCategories = getCategories();
+  const categories = (() => {
     const currentId = categoryId || existing?.category_id;
-    if (!currentId || active.some((c) => c.id === currentId)) return active;
+    if (!currentId || activeCategories.some((c) => c.id === currentId)) {
+      return activeCategories;
+    }
     const current = getCategory(currentId);
-    return current ? [...active, current] : active;
-  }, [categoryId, existing?.category_id]);
+    return current ? [...activeCategories, current] : activeCategories;
+  })();
 
   const categorySelectValue =
     !categoryId || categories.some((c) => c.id === categoryId)
@@ -60,10 +79,10 @@ export default function ProductoFormPage() {
     const product = loadDB().products.find((p) => p.id === id);
     if (!product) return;
 
-    const active = getCategories();
+    const cats = getCategories();
     const cid = product.category_id ?? "";
     const categoryExists =
-      !cid || active.some((c) => c.id === cid) || Boolean(getCategory(cid));
+      !cid || cats.some((c) => c.id === cid) || Boolean(getCategory(cid));
 
     setName(product.name);
     setType(product.type);
@@ -80,30 +99,65 @@ export default function ProductoFormPage() {
   const utility = sale - cost;
   const margin = cost > 0 ? ((utility / cost) * 100).toFixed(1) : "0";
 
-  function handleSave() {
-    if (!name.trim()) return;
-    const product: Product = {
-      id: existing?.id ?? uid("prod"),
-      business_id: MOCK_BUSINESS_ID,
-      category_id: categoryId || null,
-      name: name.trim(),
-      type,
-      sale_price: sale,
-      cost_price: cost,
-      stock: parseInt(stock) || 0,
-      image_url: imageUrl,
-      active,
-      created_at: existing?.created_at ?? new Date().toISOString(),
-    };
-    saveProduct(product);
-    router.push("/productos");
+  async function handleSave() {
+    if (!name.trim() || saving) return;
+
+    setSaving(true);
+    setImageError(null);
+
+    try {
+      let finalImageUrl = imageUrl;
+      const previousRemoteUrl = existing?.image_url ?? null;
+
+      if (pendingImageFile) {
+        setImageUploading(true);
+        const { url } = await uploadPlatformImage({
+          kind: "product",
+          entityId,
+          file: pendingImageFile,
+          previousUrl: previousRemoteUrl,
+        });
+        finalImageUrl = url;
+        if (imageUrl?.startsWith("blob:")) {
+          URL.revokeObjectURL(imageUrl);
+        }
+      } else if (!imageUrl && previousRemoteUrl) {
+        await clearPlatformImage(previousRemoteUrl);
+        finalImageUrl = null;
+      }
+
+      const product: Product = {
+        id: entityId,
+        business_id: getActiveBusinessId(),
+        category_id: categoryId || null,
+        name: name.trim(),
+        type,
+        sale_price: sale,
+        cost_price: cost,
+        stock: parseInt(stock) || 0,
+        image_url: finalImageUrl,
+        active,
+        created_at: existing?.created_at ?? new Date().toISOString(),
+      };
+      await saveProduct(product);
+      router.push("/productos");
+    } catch (err) {
+      setImageError(
+        err instanceof Error ? err.message : "No se pudo guardar el producto.",
+      );
+    } finally {
+      setImageUploading(false);
+      setSaving(false);
+    }
   }
 
   function handleDelete() {
-    if (existing) {
-      deleteProduct(existing.id);
-      router.push("/productos");
-    }
+    if (!existing) return;
+    void deleteProduct(existing.id).then(() => router.push("/productos"));
+  }
+
+  function handleCategoryCreated(category: Category) {
+    setCategoryId(category.id);
   }
 
   return (
@@ -118,6 +172,15 @@ export default function ProductoFormPage() {
         <ImagePickerSection
           imageUrl={imageUrl}
           onChange={setImageUrl}
+          uploadKind="product"
+          entityId={entityId}
+          deferUpload
+          pendingFile={pendingImageFile}
+          onPendingFileChange={setPendingImageFile}
+          uploading={imageUploading}
+          onUploadingChange={setImageUploading}
+          error={imageError}
+          onError={setImageError}
           emptyDescription="Foto o ícono para este producto"
           filledDescription="Toca para reemplazar la imagen del producto"
           ariaLabel="Imagen del producto"
@@ -172,31 +235,31 @@ export default function ProductoFormPage() {
               placeholder="0"
             />
           </div>
-          
         </section>
 
         <div className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-card-foreground">Utilidad estimada</h2>
-        <div className="gap-0 py-4 border border-neutral-200 rounded-lg shadow-sm shadow-neutral-100">
+          <div className="gap-0 rounded-lg border border-neutral-200 py-4 shadow-sm shadow-neutral-100">
             <div className="!px-4 !py-0">
-                <p className="text-sm font-semibold text-neutral-600  tabular-nums">
-                  {formatCurrency(utility)}
-                </p>
-                <p className="text-sm text-primary">Margen: {margin}%</p>
-              </div>
+              <p className="text-sm font-semibold tabular-nums text-neutral-600">
+                {formatCurrency(utility)}
+              </p>
+              <p className="text-sm text-primary">Margen: {margin}%</p>
             </div>
           </div>
+        </div>
 
         <section className="space-y-2">
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-card-foreground">Categoría</h2>
-            <Link
-              href="/opciones/categorias"
+            <button
+              type="button"
+              onClick={() => setCategoryDrawerOpen(true)}
               className="flex items-center gap-1 text-xs font-medium text-primary"
             >
               <Plus className="h-3.5 w-3.5" />
               Agregar
-            </Link>
+            </button>
           </div>
           <SelectField
             value={categorySelectValue}
@@ -240,6 +303,7 @@ export default function ProductoFormPage() {
             type="button"
             variant="secondary"
             fullWidth
+            disabled={saving}
             onClick={() => router.push("/productos")}
           >
             Cancelar
@@ -248,13 +312,19 @@ export default function ProductoFormPage() {
             type="button"
             variant="success"
             fullWidth
-            disabled={!name.trim()}
-            onClick={handleSave}
+            disabled={!name.trim() || saving || imageUploading}
+            onClick={() => void handleSave()}
           >
-            {isNew ? "Crear producto" : "Guardar"}
+            {saving ? "Guardando…" : isNew ? "Crear producto" : "Guardar"}
           </Button>
         </div>
       </div>
+
+      <QuickCategoryDrawer
+        open={categoryDrawerOpen}
+        onClose={() => setCategoryDrawerOpen(false)}
+        onCreated={handleCategoryCreated}
+      />
     </>
   );
 }

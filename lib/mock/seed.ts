@@ -30,6 +30,8 @@ export const mockBusiness: Business = {
   owner_id: MOCK_USER_ID,
   logo_url: null,
   plan: "free",
+  tax_rate: 0.18,
+  currency: "DOP",
   created_at: MOCK_NOW,
 };
 

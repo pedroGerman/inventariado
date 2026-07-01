@@ -6,9 +6,9 @@ import { Search } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Input";
+import { ContactRow } from "@/components/clientes/ContactRow";
 import { getCustomers } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
-import { formatPhoneDisplay } from "@/lib/utils/phone";
 import type { Customer } from "@/lib/types/database";
 
 const CREATE_CUSTOMER_HREF =
@@ -65,34 +65,27 @@ export function AddCustomerModal({
           </Button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-2 pt-0.5 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto px-1 pt-0.5">
           {filtered.length === 0 ? (
-            <p className="py-6 text-center text-sm text-slate-500">
+            <p className="py-6 text-center text-sm text-muted-foreground">
               No hay clientes que coincidan
             </p>
           ) : (
-            filtered.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => {
-                  onSelect(c);
-                  onClose();
-                }}
-                className={
-                  c.id === highlightCustomerId
-                    ? "w-full rounded-xl border-0 bg-surface-2 px-4 py-3 text-left text-secondary-foreground shadow-overview-metric ring-2 ring-primary/30 transition-[box-shadow] active:bg-surface-3"
-                    : "w-full rounded-xl border-0 bg-surface-2 px-4 py-3 text-left text-secondary-foreground shadow-card-edge transition-[box-shadow] hover:shadow-overview-metric active:bg-surface-3"
-                }
-              >
-                <p className="font-medium">{c.name}</p>
-                {c.phone && (
-                  <p className="text-xs text-slate-500">
-                    {formatPhoneDisplay(c.phone)}
-                  </p>
-                )}
-              </button>
-            ))
+            <div className="divide-y divide-border/50">
+              {filtered.map((c) => (
+                <ContactRow
+                  key={c.id}
+                  name={c.name}
+                  phone={c.phone}
+                  tone="success"
+                  selected={c.id === highlightCustomerId}
+                  onClick={() => {
+                    onSelect(c);
+                    onClose();
+                  }}
+                />
+              ))}
+            </div>
           )}
         </div>
       </div>

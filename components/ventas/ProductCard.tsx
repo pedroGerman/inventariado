@@ -11,7 +11,8 @@ interface ProductCardProps {
   product?: Product;
   quickSale?: boolean;
   quickLabel?: string;
-  onClick: () => void;
+  onClick?: () => void;
+  readOnly?: boolean;
 }
 
 export function ProductCard({
@@ -19,6 +20,7 @@ export function ProductCard({
   quickSale,
   quickLabel = "Venta Rápida",
   onClick,
+  readOnly = false,
 }: ProductCardProps) {
   if (quickSale) {
     return (
@@ -43,17 +45,15 @@ export function ProductCard({
   if (!product) return null;
   const outOfStock = product.stock === 0;
 
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={outOfStock}
-      className={cn(
-        ffElevatedMetricSurfaceClass,
-        "relative flex flex-col p-2 text-left transition-[box-shadow,transform] active:scale-[0.98]",
-        outOfStock && "opacity-60",
-      )}
-    >
+  const cardClassName = cn(
+    ffElevatedMetricSurfaceClass,
+    "relative flex flex-col p-2 text-left",
+    !readOnly && "transition-[box-shadow,transform] active:scale-[0.98]",
+    outOfStock && "opacity-60",
+  );
+
+  const cardContent = (
+    <>
       {outOfStock && (
         <Badge variant="danger" className="absolute right-2.5 top-2.5 z-10">
           Agotado
@@ -77,6 +77,21 @@ export function ProductCard({
       <p className="mt-0.5 text-xs font-semibold tabular-nums text-[var(--button-success)]">
         {formatCurrency(product.sale_price)}
       </p>
+    </>
+  );
+
+  if (readOnly) {
+    return <div className={cardClassName}>{cardContent}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={outOfStock}
+      className={cardClassName}
+    >
+      {cardContent}
     </button>
   );
 }

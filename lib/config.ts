@@ -7,3 +7,4 @@ export function isMockMode(): boolean {
 }
 
 export const MOCK_SESSION_COOKIE = "pos-mock-session";
+export const MOCK_ONBOARDING_COOKIE = "pos-onboarding-complete";

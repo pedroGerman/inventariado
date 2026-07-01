@@ -24,10 +24,14 @@ export default function SignupPage() {
     email.trim().length > 0 &&
     isPasswordValid(password);
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!canSubmit || success) return;
+
     setLoading(true);
     setError(null);
     setSuccess(null);
+    const formData = new FormData(e.currentTarget);
     const result = await signup(formData);
     if (result?.error) {
       setError(result.error);
@@ -57,7 +61,7 @@ export default function SignupPage() {
         </div>
       )}
 
-      <form action={handleSubmit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <TextField
           id="name"
           name="name"
@@ -98,7 +102,7 @@ export default function SignupPage() {
         )}
 
         {success && (
-          <p className="rounded-xl bg-green-50 px-4 py-2.5 text-sm text-[var(--button-success)]">
+          <p className="rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-sm text-[var(--button-success)]">
             {success}
           </p>
         )}
