@@ -11,6 +11,7 @@ import { formatCurrency } from "@/lib/utils/formatCurrency";
 import {
   paymentMethodReceivedLabel,
   paymentMethodUsesNumericKeyboard,
+  type PaymentFlow,
 } from "@/lib/utils/paymentMethod";
 import {
   computeSalePaymentAmounts,
@@ -23,6 +24,7 @@ interface ConfirmPaymentModalProps {
   total: number;
   paymentType: PaymentType;
   paymentMethod: PaymentMethod;
+  flow?: PaymentFlow;
   customerName?: string | null;
   onConfirm: (toPay: number, received: number) => void;
   onRequireCustomer?: () => void;
@@ -34,10 +36,12 @@ export function ConfirmPaymentModal({
   total,
   paymentType,
   paymentMethod,
+  flow = "sale",
   customerName,
   onConfirm,
   onRequireCustomer,
 }: ConfirmPaymentModalProps) {
+  const isPurchase = flow === "purchase";
   const [toPay, setToPay] = useState(String(total));
   const [received, setReceived] = useState("");
 
@@ -104,15 +108,27 @@ export function ConfirmPaymentModal({
 
         {isPayLater ? (
           <p className="rounded-xl bg-surface-2 px-4 py-3 text-center text-sm text-muted-foreground">
-            La venta quedará registrada como fiado por{" "}
-            <span className="font-semibold text-foreground">
-              {formatCurrency(total)}
-            </span>
-            .
+            {isPurchase ? (
+              <>
+                La compra quedará registrada con saldo pendiente de{" "}
+                <span className="font-semibold text-foreground">
+                  {formatCurrency(total)}
+                </span>
+                .
+              </>
+            ) : (
+              <>
+                La venta quedará registrada como fiado por{" "}
+                <span className="font-semibold text-foreground">
+                  {formatCurrency(total)}
+                </span>
+                .
+              </>
+            )}
           </p>
         ) : isPartialMode ? (
           <TextField
-            label="Abonas ahora"
+            label={isPurchase ? "Pagas ahora" : "Abonas ahora"}
             value={toPay}
             onChange={(e) => setToPay(e.target.value)}
             inputMode="decimal"
@@ -130,7 +146,7 @@ export function ConfirmPaymentModal({
             />
             {usesKeyboard ? (
               <TextField
-                label={paymentMethodReceivedLabel(paymentMethod)}
+                label={paymentMethodReceivedLabel(paymentMethod, flow)}
                 value={received}
                 onChange={(e) => setReceived(e.target.value)}
                 inputMode="decimal"
@@ -162,8 +178,17 @@ export function ConfirmPaymentModal({
           <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-amber-900">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p className="text-sm">
-              Agrega un cliente para registrar la deuda en{" "}
-              <span className="font-medium">Deudas</span>.
+              {isPurchase ? (
+                <>
+                  Agrega un proveedor para registrar el saldo en{" "}
+                  <span className="font-medium">Deudas</span>.
+                </>
+              ) : (
+                <>
+                  Agrega un cliente para registrar la deuda en{" "}
+                  <span className="font-medium">Deudas</span>.
+                </>
+              )}
             </p>
           </div>
         )}
@@ -180,7 +205,11 @@ export function ConfirmPaymentModal({
           onClick={handleConfirm}
           disabled={!canConfirm && !isPayLater}
         >
-          {needsCustomer ? "AGREGAR CLIENTE" : "FINALIZAR"}
+          {needsCustomer
+            ? isPurchase
+              ? "AGREGAR PROVEEDOR"
+              : "AGREGAR CLIENTE"
+            : "FINALIZAR"}
         </Button>
       </div>
     </Modal>

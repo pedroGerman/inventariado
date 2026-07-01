@@ -14,6 +14,7 @@ import { uid } from "@/lib/mock/db";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { TextField } from "@/components/ui/Input";
+import { FloatingCartButton } from "@/components/ventas/FloatingCartButton";
 
 export default function VentasPage() {
   useMockDBRefresh();
@@ -21,7 +22,6 @@ export default function VentasPage() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [search, setSearch] = useState("");
   const addItem = useCartStore((s) => s.addItem);
-  const setMode = useCartStore((s) => s.setMode);
 
   const categories = getCategories("ventas");
   let products = getProducts().filter((p) => p.type === "product");
@@ -37,16 +37,19 @@ export default function VentasPage() {
 
   function handleAddProduct(product: (typeof products)[0]) {
     if (product.stock <= 0) return;
-    setMode("sale");
-    addItem({
-      id: uid("ci"),
-      product_id: product.id,
-      name: product.name,
-      quantity: 1,
-      unit_price: product.sale_price,
-      total_price: product.sale_price,
-      type: "product",
-    });
+    addItem(
+      {
+        id: uid("ci"),
+        product_id: product.id,
+        name: product.name,
+        quantity: 1,
+        unit_price: product.sale_price,
+        total_price: product.sale_price,
+        type: "product",
+        image_url: product.image_url,
+      },
+      "sale",
+    );
   }
 
   return (
@@ -62,7 +65,7 @@ export default function VentasPage() {
         }
       />
 
-      <div className="px-4 py-3 flex flex-col gap-3">
+      <div className="px-3 py-3 flex flex-col gap-3">
         <TextField
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -90,7 +93,7 @@ export default function VentasPage() {
         onSelect={setSelectedCategory}
       />
 
-      <div className="grid grid-cols-3 gap-2 px-4 py-3">
+      <div className="grid grid-cols-3 gap-2 px-3 py-3">
         <ProductCard quickSale onClick={() => setQuickOpen(true)} />
         {products.map((p) => (
           <ProductCard key={p.id} product={p} onClick={() => handleAddProduct(p)} />
@@ -106,6 +109,7 @@ export default function VentasPage() {
       )}
 
       <QuickSaleModal open={quickOpen} onClose={() => setQuickOpen(false)} mode="sale" />
+      <FloatingCartButton mode="sale" />
     </>
   );
 }

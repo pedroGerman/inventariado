@@ -26,7 +26,7 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!canSubmit || success) return;
+    if (!canSubmit || success || loading) return;
 
     setLoading(true);
     setError(null);
@@ -112,7 +112,7 @@ export default function SignupPage() {
           variant="default"
           fullWidth
           loading={loading}
-          disabled={!canSubmit || !!success}
+          disabled={!canSubmit || !!success || loading}
           className="rounded-xl disabled:opacity-40"
         >
           Crear cuenta

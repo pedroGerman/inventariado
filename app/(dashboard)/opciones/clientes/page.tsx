@@ -96,8 +96,12 @@ export default function ClientesPage() {
   const suppliers = getSuppliers();
   const debts = getDebts();
 
-  const porCobrar = debts.reduce((s, d) => s + d.remaining, 0);
-  const deudores = debts.filter((d) => d.remaining > 0).length;
+  const porCobrar = debts
+    .filter((d) => d.kind === "collect")
+    .reduce((s, d) => s + d.remaining, 0);
+  const deudores = debts.filter(
+    (d) => d.kind === "collect" && d.remaining > 0,
+  ).length;
   const isCustomers = tab === "customers";
   const list = isCustomers ? customers : suppliers;
 
@@ -105,7 +109,7 @@ export default function ClientesPage() {
     <>
       <Header title="Clientes / Proveedores" showBack backHref="/opciones" />
 
-      <div className="flex flex-col gap-7 px-4 py-4 pb-28">
+      <div className="flex flex-col gap-7 px-3 py-4 pb-28">
         <SegmentedControl
           aria-label="Tipo de contacto"
           value={tab}
@@ -119,7 +123,7 @@ export default function ClientesPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-card-foreground">Resumen</h2>
           <Card className="gap-0 !py-0">
-            <CardContent className="!px-5 !py-4">
+            <CardContent className="!px-3.5 !py-4">
               {isCustomers ? (
                 <div className="grid grid-cols-3 gap-3">
                   <SummaryMetric

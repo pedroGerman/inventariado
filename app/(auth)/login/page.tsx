@@ -18,9 +18,13 @@ export default function LoginPage() {
     if (!mock) clearStaleLocalData();
   }, [mock]);
 
-  async function handleSubmit(formData: FormData) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (loading) return;
+
     setLoading(true);
     setError(null);
+    const formData = new FormData(e.currentTarget);
     const result = await login(formData);
     if (result?.error) {
       setError(result.error);
@@ -46,7 +50,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      <form action={handleSubmit} className="flex flex-col gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
         <TextField
           id="email"
           name="email"
@@ -74,6 +78,7 @@ export default function LoginPage() {
           variant="default"
           fullWidth
           loading={loading}
+          disabled={loading}
           className="rounded-xl"
         >
           Iniciar sesión

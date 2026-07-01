@@ -10,12 +10,15 @@ import { Toggle } from "@/components/ui/Toggle";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { savePayment, newEntityId } from "@/lib/mock/db";
 
+import type { DebtKind } from "@/lib/types/database";
+
 interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
   debtId: string;
   amount: number;
   mode: "full" | "partial";
+  flow?: DebtKind;
   onSuccess: () => void;
 }
 
@@ -25,8 +28,10 @@ export function PaymentModal({
   debtId,
   amount,
   mode,
+  flow = "collect",
   onSuccess,
 }: PaymentModalProps) {
+  const isPayable = flow === "pay";
   const [method, setMethod] = useState("cash");
   const [printReceipt, setPrintReceipt] = useState(true);
   const [partialAmount, setPartialAmount] = useState("");
@@ -64,13 +69,23 @@ export function PaymentModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={mode === "full" ? "Cobrar Todo" : "Abonar"}
+      title={
+        mode === "full"
+          ? isPayable
+            ? "Pagar Todo"
+            : "Cobrar Todo"
+          : "Abonar"
+      }
     >
       <div className="space-y-4">
         {mode === "full" && (
           <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-amber-800">
             <AlertTriangle className="h-5 w-5 shrink-0" />
-            <span className="text-sm">Se cobrará el saldo completo de la deuda.</span>
+            <span className="text-sm">
+              {isPayable
+                ? "Se pagará el saldo completo de la deuda."
+                : "Se cobrará el saldo completo de la deuda."}
+            </span>
           </div>
         )}
 
@@ -99,7 +114,7 @@ export function PaymentModal({
 
         {mode === "partial" && (
           <TextField
-            label="Abonas"
+            label={isPayable ? "Pagas" : "Abonas"}
             type="number"
             inputMode="decimal"
             value={partialAmount}

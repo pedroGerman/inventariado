@@ -2,72 +2,105 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShoppingCart, UserPlus } from "lucide-react";
+import { ShoppingCart, Truck, UserPlus } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Toggle } from "@/components/ui/Toggle";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { SelectableButtonGroup } from "@/components/ui/SelectableButtonGroup";
 import { PaymentMethods } from "@/components/caja/PaymentMethods";
 import { AddCustomerModal } from "@/components/caja/AddCustomerModal";
+import { AddSupplierModal } from "@/components/caja/AddSupplierModal";
 import { ConfirmPaymentModal } from "@/components/caja/ConfirmPaymentModal";
-import { useCartStore } from "@/lib/store/cart";
+import { useCartStore, type CartMode } from "@/lib/store/cart";
 import { useCheckoutStore } from "@/lib/store/checkout";
 import { useEmployeeStore } from "@/lib/store/employee";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
-import { finalizeSale } from "@/lib/services/checkout";
+import { finalizePurchase, finalizeSale } from "@/lib/services/checkout";
+import { cn } from "@/lib/utils/cn";
 import type { PaymentType } from "@/lib/types/database";
 import { todayISO } from "@/lib/utils/date";
 
-const paymentTabs: { id: PaymentType; label: string }[] = [
+const salePaymentTabs: { id: PaymentType; label: string }[] = [
   { id: "pay_all", label: "Pagar todo" },
   { id: "deposit", label: "Abonar" },
   { id: "pay_later", label: "Pagar después" },
   { id: "split", label: "Dividir cuenta" },
 ];
 
+const purchasePaymentTabs: { id: PaymentType; label: string }[] = [
+  { id: "pay_all", label: "Pagar todo" },
+  { id: "deposit", label: "Abonar" },
+  { id: "pay_later", label: "Pagar después" },
+];
+
 export default function VentasCajaPage() {
   return (
     <Suspense fallback={null}>
-      <VentasCajaPageContent />
+      <CajaPageContent />
     </Suspense>
   );
 }
 
-function VentasCajaPageContent() {
+function CajaPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { items, getTotal, clearCart } = useCartStore();
+  const saleItems = useCartStore((s) => s.saleItems);
+  const purchaseItems = useCartStore((s) => s.purchaseItems);
+  const getTotal = useCartStore((s) => s.getTotal);
+  const clearCart = useCartStore((s) => s.clearCart);
   const current = useEmployeeStore((s) => s.current);
   const checkout = useCheckoutStore();
+
+  const [tab, setTab] = useState<CartMode>("sale");
   const [customerModal, setCustomerModal] = useState(false);
+  const [supplierModal, setSupplierModal] = useState(false);
   const [highlightCustomerId, setHighlightCustomerId] = useState<string | null>(null);
+  const [highlightSupplierId, setHighlightSupplierId] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState(false);
   const [reopenConfirmAfterCustomer, setReopenConfirmAfterCustomer] =
     useState(false);
   const [date] = useState(todayISO());
 
   useEffect(() => {
+    const requestedTab = searchParams.get("tab");
+    if (requestedTab === "purchase") setTab("purchase");
+  }, [searchParams]);
+
+  useEffect(() => {
     if (searchParams.get("openCustomerDrawer") !== "1") return;
 
+    setTab("sale");
     setCustomerModal(true);
     setHighlightCustomerId(searchParams.get("customerId"));
-
     router.replace("/ventas/caja", { scroll: false });
   }, [searchParams, router]);
 
-  const subtotal = getTotal();
-  const total =
+  useEffect(() => {
+    if (searchParams.get("openSupplierDrawer") !== "1") return;
+
+    setTab("purchase");
+    setSupplierModal(true);
+    setHighlightSupplierId(searchParams.get("supplierId"));
+    router.replace("/ventas/caja?tab=purchase", { scroll: false });
+  }, [searchParams, router]);
+
+  const items = tab === "sale" ? saleItems : purchaseItems;
+  const subtotal = getTotal(tab);
+  const saleTotal =
     subtotal +
     (checkout.includeDelivery ? checkout.service : 0) +
     checkout.tax -
     (checkout.includeDiscount ? checkout.discount : 0);
+  const total = tab === "sale" ? saleTotal : subtotal;
+  const cartHref = tab === "sale" ? "/ventas/carrito" : "/compras/carrito";
 
-  async function handleFinalize(toPay: number, received: number) {
-    if (!current || items.length === 0) return;
+  async function handleFinalizeSale(toPay: number, received: number) {
+    if (!current || saleItems.length === 0) return;
 
     const { order, debt } = await finalizeSale({
-      items,
+      items: saleItems,
       employee: current,
       customerId: checkout.customer?.id ?? null,
       paymentMethod: checkout.paymentMethod,
@@ -79,7 +112,7 @@ function VentasCajaPageContent() {
       cashReceived: received > 0 ? received : undefined,
     });
 
-    clearCart();
+    clearCart("sale");
     checkout.reset();
     setConfirmModal(false);
 
@@ -90,25 +123,69 @@ function VentasCajaPageContent() {
     router.push(`/ordenes/${order.id}?success=1`);
   }
 
+  async function handleFinalizePurchase(toPay: number, received: number) {
+    if (!current || purchaseItems.length === 0) return;
+
+    const { purchase, debt } = await finalizePurchase({
+      items: purchaseItems,
+      employee: current,
+      supplierId: checkout.supplier?.id ?? null,
+      paymentMethod: checkout.paymentMethod,
+      paymentType: checkout.paymentType as "pay_all" | "deposit" | "pay_later",
+      discount: 0,
+      tax: 0,
+      toPay,
+      cashPaid: received > 0 ? received : undefined,
+    });
+
+    clearCart("purchase");
+    checkout.reset();
+    setConfirmModal(false);
+
+    if (debt) {
+      router.push(`/deudas/${debt.id}`);
+      return;
+    }
+    router.push(`/compras/ordenes/${purchase.id}?success=1`);
+  }
+
   return (
     <>
-      <Header title="Caja" subtitle={date} showBack backHref="/ventas/carrito" />
+      <Header
+        title="Caja"
+        subtitle={date}
+        showBack
+        backHref={cartHref}
+      />
 
-      <div className="flex flex-col gap-4 px-4 py-4 pb-5">
-        <Card className="gap-0 !py-0">
-          <CardContent className="divide-y divide-border/50 !px-5 !py-0">
-            <Toggle
-              label="Incluir descuento"
-              checked={checkout.includeDiscount}
-              onChange={checkout.setIncludeDiscount}
-            />
-            <Toggle
-              label="Incluir domicilio"
-              checked={checkout.includeDelivery}
-              onChange={checkout.setIncludeDelivery}
-            />
-          </CardContent>
-        </Card>
+      <div className="px-3 pt-3">
+        <SegmentedControl
+          aria-label="Tipo de caja"
+          value={tab}
+          onChange={setTab}
+          options={[
+            { value: "sale", label: "Venta" },
+            { value: "purchase", label: "Compra" },
+          ]}
+        />
+      </div>
+
+      {tab === "sale" ? (
+        <div className="flex flex-col gap-4 px-3 py-4 pb-5">
+          <Card className="gap-0 !py-0">
+            <CardContent className="divide-y divide-border/50 !px-3.5 !py-0">
+              <Toggle
+                label="Incluir descuento"
+                checked={checkout.includeDiscount}
+                onChange={checkout.setIncludeDiscount}
+              />
+              <Toggle
+                label="Incluir domicilio"
+                checked={checkout.includeDelivery}
+                onChange={checkout.setIncludeDelivery}
+              />
+            </CardContent>
+          </Card>
 
           <div className="flex items-center justify-between gap-4 px-1 py-2.5">
             <div>
@@ -124,76 +201,130 @@ function VentasCajaPageContent() {
             </p>
           </div>
 
-        <Button
-          variant="secondary"
-          fullWidth
-          iconLeft={
-            checkout.customer ? undefined : <UserPlus className="h-4 w-4" />
-          }
-          onClick={() => setCustomerModal(true)}
-        >
-          {checkout.customer ? (
+          <Button
+            variant="secondary"
+            fullWidth
+            iconLeft={
+              checkout.customer ? undefined : <UserPlus className="h-4 w-4" />
+            }
+            onClick={() => setCustomerModal(true)}
+          >
+            {checkout.customer ? (
+              <span className="inline-flex min-w-0 max-w-full items-center justify-center gap-1.5">
+                <UserPlus className="h-4 w-4 shrink-0" />
+                <span className="truncate">{checkout.customer.name}</span>
+              </span>
+            ) : (
+              "Agregar cliente"
+            )}
+          </Button>
+
+          <section className="space-y-2">
+            <h2 className="px-0.5 text-sm font-semibold text-card-foreground">
+              Modo de pago
+            </h2>
+            <SelectableButtonGroup
+              aria-label="Modo de pago"
+              value={checkout.paymentType}
+              onChange={checkout.setPaymentType}
+              options={salePaymentTabs.map((paymentTab) => ({
+                value: paymentTab.id,
+                label: paymentTab.label,
+              }))}
+            />
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="px-0.5 text-sm font-semibold text-card-foreground">
+              Método de pago
+            </h2>
+            <PaymentMethods
+              selected={checkout.paymentMethod}
+              onSelect={checkout.setPaymentMethod}
+            />
+          </section>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4 px-3 py-4 pb-5">
+          <div className="flex items-center justify-between gap-4 px-1 py-2.5">
+            <div>
+              <p className="text-sm text-muted-foreground">Total a pagar</p>
+            </div>
+            <p className="text-base font-bold tabular-nums text-card-foreground">
+              {formatCurrency(total)}
+            </p>
+          </div>
+
+          <Button
+            variant="secondary"
+            fullWidth
+            onClick={() => setSupplierModal(true)}
+            className={cn(
+              checkout.supplier &&
+                "text-left [&>span:last-child]:truncate [&>span:last-child]:flex-1",
+            )}
+          >
             <span className="inline-flex min-w-0 max-w-full items-center justify-center gap-1.5">
-              <UserPlus className="h-4 w-4 shrink-0" />
-              <span className="truncate">{checkout.customer.name}</span>
-            </span>
-          ) : (
-            "Agregar cliente"
-          )}
+                <Truck className="h-4 w-4 shrink-0" />
+                <span className="truncate">{checkout.supplier ? checkout.supplier.name : "Agregar proveedor"}</span>
+              </span> 
+            
+          </Button>
+
+          <section className="space-y-2">
+            <h2 className="px-0.5 text-sm font-semibold text-card-foreground">
+              Modo de pago
+            </h2>
+            <SelectableButtonGroup
+              aria-label="Modo de pago"
+              columns={3}
+              value={checkout.paymentType}
+              onChange={checkout.setPaymentType}
+              options={purchasePaymentTabs.map((paymentTab) => ({
+                value: paymentTab.id,
+                label: paymentTab.label,
+              }))}
+            />
+          </section>
+
+          <section className="space-y-2">
+            <h2 className="px-0.5 text-sm font-semibold text-card-foreground">
+              Método de pago
+            </h2>
+            <PaymentMethods
+              selected={checkout.paymentMethod}
+              onSelect={checkout.setPaymentMethod}
+            />
+          </section>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 px-3 py-4">
+        <Button
+          type="button"
+          variant="default"
+          fullWidth
+          iconLeft={<ShoppingCart className="h-4 w-4" />}
+          iconRight={
+            items.length > 0 ? (
+              <span className="inline-flex aspect-square w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold leading-none text-white">
+                {items.length}
+              </span>
+            ) : undefined
+          }
+          onClick={() => router.push(cartHref)}
+        >
+          Pre orden
         </Button>
 
-        <section className="space-y-2">
-          <h2 className="px-0.5 text-sm font-semibold text-card-foreground">
-            Modo de pago
-          </h2>
-          <SelectableButtonGroup
-            aria-label="Modo de pago"
-            value={checkout.paymentType}
-            onChange={checkout.setPaymentType}
-            options={paymentTabs.map((tab) => ({
-              value: tab.id,
-              label: tab.label,
-            }))}
-          />
-        </section>
-
-        <section className="space-y-2">
-          <h2 className="px-0.5 text-sm font-semibold text-card-foreground">
-            Método de pago
-          </h2>
-          <PaymentMethods
-            selected={checkout.paymentMethod}
-            onSelect={checkout.setPaymentMethod}
-          />
-        </section>
-      </div>
-
-          <div className="space-y-3 px-4 py-4">
-            <Button
-              type="button"
-              variant="default"
-              fullWidth
-              iconLeft={<ShoppingCart className="h-4 w-4" />}
-              iconRight={
-                items.length > 0 ? (
-                  <span className="inline-flex w-5 aspect-square items-center justify-center rounded-full bg-destructive  text-[10px] font-bold leading-none text-white">
-                    {items.length}
-                  </span>
-                ) : undefined
-              }
-              onClick={() => router.push("/ventas/carrito")}
-            >
-              Pre orden
-            </Button>
-
-            <Button
-              fullWidth
-              variant="success"
-              disabled={items.length === 0}
-              onClick={() => setConfirmModal(true)}
-            >
-              Continuar
-            </Button>
+        <Button
+          fullWidth
+          variant="success"
+          disabled={items.length === 0}
+          onClick={() => setConfirmModal(true)}
+        >
+          {tab === "sale" ? "Continuar" : "Finalizar"}
+        </Button>
       </div>
 
       <AddCustomerModal
@@ -213,19 +344,41 @@ function VentasCajaPageContent() {
         highlightCustomerId={highlightCustomerId}
       />
 
+      <AddSupplierModal
+        open={supplierModal}
+        onClose={() => {
+          setSupplierModal(false);
+          setHighlightSupplierId(null);
+        }}
+        onSelect={checkout.setSupplier}
+        highlightSupplierId={highlightSupplierId}
+      />
+
       <ConfirmPaymentModal
         open={confirmModal}
         onClose={() => setConfirmModal(false)}
         total={total}
+        flow={tab}
         paymentType={checkout.paymentType}
         paymentMethod={checkout.paymentMethod}
-        customerName={checkout.customer?.name}
-        onConfirm={handleFinalize}
-        onRequireCustomer={() => {
-          setConfirmModal(false);
-          setReopenConfirmAfterCustomer(true);
-          setCustomerModal(true);
-        }}
+        customerName={tab === "sale" ? checkout.customer?.name : checkout.supplier?.name}
+        onConfirm={
+          tab === "sale"
+            ? handleFinalizeSale
+            : handleFinalizePurchase
+        }
+        onRequireCustomer={
+          tab === "sale"
+            ? () => {
+                setConfirmModal(false);
+                setReopenConfirmAfterCustomer(true);
+                setCustomerModal(true);
+              }
+            : () => {
+                setConfirmModal(false);
+                setSupplierModal(true);
+              }
+        }
       />
     </>
   );

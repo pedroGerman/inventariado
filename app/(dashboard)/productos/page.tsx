@@ -54,7 +54,7 @@ export default function ProductosPage() {
         }
       />
 
-      <div className="space-y-3 px-4 py-3 pb-8">
+      <div className="space-y-3 px-3 py-3 pb-8">
         <SegmentedControl
           aria-label="Tipo de ítem"
           value={tab}
@@ -120,8 +120,17 @@ export default function ProductosPage() {
                     href={`/productos/${p.id}`}
                     className="flex w-full items-center gap-3 text-left"
                   >
-                    <div className="flex size-16 shrink-0 items-center justify-center rounded-xl bg-surface-2 shadow-segmented-track">
-                      <Package className="h-6 w-6 text-muted-foreground" />
+                    <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-surface-2 shadow-segmented-track">
+                      {p.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={p.image_url}
+                          alt={p.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      )}
                     </div>
 
                     <div className="min-w-0 flex-1 flex flex-col">

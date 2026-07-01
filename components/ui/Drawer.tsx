@@ -55,9 +55,9 @@ interface AppDrawerProps {
   title?: string;
   children: React.ReactNode;
   className?: string;
-  /** Viewport fraction when open (0–1). Default 0.9 (90dvh). */
+  /** Viewport fraction when open (0–1). Default 0.95 (95dvh). */
   snapPoint?: number;
-  /** Size to content instead of the default snap height. */
+  /** Size to content with min/max height constraints. */
   fitContent?: boolean;
 }
 
@@ -67,7 +67,7 @@ function AppDrawer({
   title,
   children,
   className,
-  snapPoint = 0.9,
+  snapPoint = 0.95,
   fitContent = false,
 }: AppDrawerProps) {
   const drawerHeight = `${snapPoint * 100}dvh`;
@@ -77,8 +77,16 @@ function AppDrawer({
       className="flex min-h-0 flex-col"
       style={
         fitContent
-          ? { maxHeight: "95dvh" }
-          : { height: drawerHeight, maxHeight: drawerHeight }
+          ? {
+              height: "fit-content",
+              minHeight: "50dvh",
+              maxHeight: "95dvh",
+            }
+          : {
+              height: drawerHeight,
+              minHeight: "50dvh",
+              maxHeight: drawerHeight,
+            }
       }
     >
       <DrawerPrimitive.Handle className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-slate-300" />

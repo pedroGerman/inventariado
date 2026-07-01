@@ -40,11 +40,16 @@ function CartAction({
 
 export default function VentasCarritoPage() {
   const router = useRouter();
-  const { items, updateQuantity, removeItem, clearCart, getTotal, getItemCount } =
-    useCartStore();
+  const saleItems = useCartStore((s) => s.saleItems);
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const clearCart = useCartStore((s) => s.clearCart);
+  const getTotal = useCartStore((s) => s.getTotal);
+  const getItemCount = useCartStore((s) => s.getItemCount);
 
-  const itemCount = getItemCount();
-  const total = getTotal();
+  const itemCount = getItemCount("sale");
+  const total = getTotal("sale");
+  const items = saleItems;
 
   return (
     <>
@@ -59,7 +64,7 @@ export default function VentasCarritoPage() {
         backHref="/ventas"
       />
 
-      <div className="px-4 divide-y pb-[250px] divide-slate-200 flex flex-col items-center justify-center min-h-[calc(100vh-15rem)] ">
+      <div className="px-3 divide-y pb-[250px] divide-slate-200 flex flex-col items-center justify-center min-h-[calc(100vh-15rem)] ">
         {items.length === 0 ? (
           <section className="flex flex-col justify-center  items-center gap-2 py-10">
             <p className="text-sm text-muted-foreground">El carrito está vacío</p>
@@ -72,15 +77,15 @@ export default function VentasCarritoPage() {
             <CartItemRow
               key={item.id}
               item={item}
-              onUpdateQty={updateQuantity}
-              onRemove={removeItem}
+              onUpdateQty={(id, qty) => updateQuantity(id, qty, "sale")}
+              onRemove={(id) => removeItem(id, "sale")}
             />
           ))
         )}
       </div>
 
       {items.length > 0 && (
-        <div className="fixed bottom-14 left-0 right-0 z-20 mx-auto max-w-mobile px-4 safe-bottom">
+        <div className="fixed bottom-14 left-0 right-0 z-20 mx-auto max-w-mobile px-3.5 safe-bottom">
           <Card className="gap-0 !pb-3 !pt-0 overflow-hidden rounded-b-none shadow-ff-surface-4">
             <CardContent className="space-y-3 !px-3.5 !pb-3.5">
               <div className="flex border-b border-border/50 py-1">
@@ -90,7 +95,7 @@ export default function VentasCarritoPage() {
                   icon={Trash2}
                   label="Borrar"
                   tone="danger"
-                  onClick={clearCart}
+                  onClick={() => clearCart("sale")}
                 />
               </div>
 

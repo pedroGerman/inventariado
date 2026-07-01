@@ -154,13 +154,15 @@ export function getSalesSummaryForDashboardFilter(
   }
 
   const debts = getDebts();
+  const collectDebts = debts.filter((d) => d.kind === "collect");
+  const payDebts = debts.filter((d) => d.kind === "pay");
 
   return {
     productsSold: productIds.size,
     unitsSold,
     salesTotal,
-    pendingCollect: debts.reduce((sum, debt) => sum + debt.remaining, 0),
-    pendingPay: 0,
+    pendingCollect: collectDebts.reduce((sum, debt) => sum + debt.remaining, 0),
+    pendingPay: payDebts.reduce((sum, debt) => sum + debt.remaining, 0),
   };
 }
 

@@ -53,7 +53,17 @@ export function paymentMethodUsesNumericKeyboard(method: PaymentMethod): boolean
   return method !== "other";
 }
 
-export function paymentMethodReceivedLabel(method: PaymentMethod): string {
+export type PaymentFlow = "sale" | "purchase";
+
+export function paymentMethodReceivedLabel(
+  method: PaymentMethod,
+  flow: PaymentFlow = "sale",
+): string {
+  if (flow === "purchase") {
+    if (method === "cash") return "Entregas";
+    if (method === "transfer") return "Transferido";
+    return "Pagado";
+  }
   if (method === "cash") return "Recibes";
   if (method === "transfer") return "Transferido";
   return "Cobrado";

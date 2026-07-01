@@ -13,31 +13,48 @@ export interface CartItem {
   unit_price: number;
   total_price: number;
   type: "product" | "quick_sale" | "quick_purchase";
+  image_url?: string | null;
+}
+
+type ItemsKey = "saleItems" | "purchaseItems";
+
+function itemsKey(mode: CartMode): ItemsKey {
+  return mode === "sale" ? "saleItems" : "purchaseItems";
+}
+
+function sumTotal(items: CartItem[]) {
+  return items.reduce((sum, item) => sum + item.total_price, 0);
+}
+
+function sumCount(items: CartItem[]) {
+  return items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
 interface CartStore {
-  mode: CartMode;
-  items: CartItem[];
-  setMode: (mode: CartMode) => void;
-  addItem: (item: CartItem) => void;
-  removeItem: (id: string) => void;
-  updateQuantity: (id: string, quantity: number) => void;
-  clearCart: () => void;
-  getTotal: () => number;
-  getItemCount: () => number;
+  saleItems: CartItem[];
+  purchaseItems: CartItem[];
+  addItem: (item: CartItem, mode: CartMode) => void;
+  removeItem: (id: string, mode: CartMode) => void;
+  updateQuantity: (id: string, quantity: number, mode: CartMode) => void;
+  clearCart: (mode: CartMode) => void;
+  getItems: (mode: CartMode) => CartItem[];
+  getTotal: (mode: CartMode) => number;
+  getItemCount: (mode: CartMode) => number;
 }
 
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
-      mode: "sale",
-      items: [],
+      saleItems: [],
+      purchaseItems: [],
 
-      setMode: (mode) => set({ mode }),
+      getItems: (mode) => get()[itemsKey(mode)],
 
-      addItem: (item) => {
+      addItem: (item, mode) => {
+        const key = itemsKey(mode);
         set((state) => {
-          const existing = state.items.find(
+          const current = state[key];
+          const existing = current.find(
             (i) =>
               i.product_id === item.product_id &&
               i.product_id !== null &&
@@ -46,7 +63,7 @@ export const useCartStore = create<CartStore>()(
 
           if (existing) {
             return {
-              items: state.items.map((i) =>
+              [key]: current.map((i) =>
                 i.id === existing.id
                   ? {
                       ...i,
@@ -58,24 +75,26 @@ export const useCartStore = create<CartStore>()(
             };
           }
 
-          return { items: [...state.items, item] };
+          return { [key]: [...current, item] };
         });
       },
 
-      removeItem: (id) => {
+      removeItem: (id, mode) => {
+        const key = itemsKey(mode);
         set((state) => ({
-          items: state.items.filter((i) => i.id !== id),
+          [key]: state[key].filter((i) => i.id !== id),
         }));
       },
 
-      updateQuantity: (id, quantity) => {
+      updateQuantity: (id, quantity, mode) => {
         if (quantity <= 0) {
-          get().removeItem(id);
+          get().removeItem(id, mode);
           return;
         }
 
+        const key = itemsKey(mode);
         set((state) => ({
-          items: state.items.map((i) =>
+          [key]: state[key].map((i) =>
             i.id === id
               ? { ...i, quantity, total_price: quantity * i.unit_price }
               : i,
@@ -83,16 +102,32 @@ export const useCartStore = create<CartStore>()(
         }));
       },
 
-      clearCart: () => set({ items: [] }),
-
-      getTotal: () => {
-        return get().items.reduce((sum, item) => sum + item.total_price, 0);
+      clearCart: (mode) => {
+        set({ [itemsKey(mode)]: [] });
       },
 
-      getItemCount: () => {
-        return get().items.reduce((sum, item) => sum + item.quantity, 0);
-      },
+      getTotal: (mode) => sumTotal(get()[itemsKey(mode)]),
+
+      getItemCount: (mode) => sumCount(get()[itemsKey(mode)]),
     }),
-    { name: "pos-cart" },
+    {
+      name: "pos-cart",
+      version: 1,
+      migrate: (persistedState) => {
+        const state = persistedState as Record<string, unknown> | undefined;
+        if (!state) return { saleItems: [], purchaseItems: [] };
+
+        if ("saleItems" in state && "purchaseItems" in state) {
+          return persistedState;
+        }
+
+        const oldItems = (state.items as CartItem[]) ?? [];
+        const oldMode = (state.mode as CartMode) ?? "sale";
+        return {
+          saleItems: oldMode === "sale" ? oldItems : [],
+          purchaseItems: oldMode === "purchase" ? oldItems : [],
+        };
+      },
+    },
   ),
 );

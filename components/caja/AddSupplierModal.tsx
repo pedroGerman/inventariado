@@ -49,7 +49,7 @@ export function AddSupplierModal({
   return (
     <Modal open={open} onClose={onClose} title="Agregar Proveedor">
       <div className="flex min-h-0 flex-1 flex-col gap-4">
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 pt-1">
           <TextField
             value={search}
             onChange={(e) => setSearch(e.target.value)}

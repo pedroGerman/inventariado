@@ -25,7 +25,7 @@ export function AccountProfileHeader({ className }: AccountProfileHeaderProps) {
   return (
     <section
       className={cn(
-        "flex flex-col items-center gap-3 px-2 pb-2 pt-1 text-center",
+        "flex flex-col items-center gap-3 pb-2 pt-1 text-center",
         className,
       )}
     >

@@ -1,5 +1,5 @@
 import type { CartItem } from "@/lib/store/cart";
-import type { Debt, Employee, Order } from "@/lib/types/database";
+import type { Debt, Employee, Order, Purchase } from "@/lib/types/database";
 import type { PaymentMethod, PaymentType } from "@/lib/types/database";
 import { todayISO } from "@/lib/utils/date";
 import {
@@ -98,8 +98,11 @@ export async function finalizeSale(
   if (payment.balanceDue > 0 && params.customerId) {
     debt = {
       id: newEntityId(),
+      kind: "collect",
       order_id: orderId,
+      purchase_id: null,
       customer_id: params.customerId,
+      supplier_id: null,
       business_id: businessId,
       total,
       paid: payment.amountApplied,
@@ -117,29 +120,45 @@ interface FinalizePurchaseParams {
   items: CartItem[];
   employee: Employee;
   supplierId: string | null;
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
   paymentType: "pay_all" | "deposit" | "pay_later";
   discount: number;
   tax: number;
+  toPay?: number;
+  cashPaid?: number;
 }
 
-export async function finalizePurchase(params: FinalizePurchaseParams) {
+export interface FinalizePurchaseResult {
+  purchase: Purchase;
+  debt?: Debt;
+}
+
+export async function finalizePurchase(
+  params: FinalizePurchaseParams,
+): Promise<FinalizePurchaseResult> {
   const subtotal = params.items.reduce((s, i) => s + i.total_price, 0);
   const total = subtotal + params.tax - params.discount;
   const purchaseId = newEntityId();
   const now = new Date().toISOString();
+  const payment = computeSalePaymentAmounts(
+    total,
+    params.paymentType,
+    params.paymentMethod,
+    params.toPay ?? total,
+    params.cashPaid,
+  );
 
   const businessId = getActiveBusinessId() || getBusiness().id;
   const purchaseNumber = await nextPurchaseNumber(businessId);
 
-  const purchase = {
+  const purchase: Purchase = {
     id: purchaseId,
     business_id: businessId,
     employee_id: params.employee.id,
     supplier_id: params.supplierId,
     register_id: null,
     purchase_number: purchaseNumber,
-    status: "confirmed" as const,
+    status: "confirmed",
     payment_method: params.paymentMethod,
     payment_type: params.paymentType,
     subtotal,
@@ -148,6 +167,8 @@ export async function finalizePurchase(params: FinalizePurchaseParams) {
     total,
     date: todayISO(),
     created_at: now,
+    cash_paid: payment.cashReceived,
+    change: payment.change,
     items: params.items.map((item) => ({
       id: newEntityId(),
       purchase_id: purchaseId,
@@ -169,5 +190,24 @@ export async function finalizePurchase(params: FinalizePurchaseParams) {
     ),
   );
 
-  return purchase;
+  let debt: Debt | undefined;
+  if (payment.balanceDue > 0 && params.supplierId) {
+    debt = {
+      id: newEntityId(),
+      kind: "pay",
+      order_id: null,
+      purchase_id: purchaseId,
+      customer_id: null,
+      supplier_id: params.supplierId,
+      business_id: businessId,
+      total,
+      paid: payment.amountApplied,
+      remaining: payment.balanceDue,
+      status: debtStatusFromAmounts(total, payment.amountApplied),
+      created_at: now,
+    };
+    await saveDebt(debt);
+  }
+
+  return { purchase, debt };
 }

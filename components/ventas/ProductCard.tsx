@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import { ffElevatedMetricSurfaceClass } from "@/lib/utils/ff-surfaces";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
@@ -81,7 +82,11 @@ export function ProductCard({
   );
 
   if (readOnly) {
-    return <div className={cardClassName}>{cardContent}</div>;
+    return (
+      <Link href={`/productos/${product.id}`} className={cardClassName}>
+        {cardContent}
+      </Link>
+    );
   }
 
   return (

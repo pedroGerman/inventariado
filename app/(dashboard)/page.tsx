@@ -77,7 +77,7 @@ export default function DashboardPage() {
         employeeRole={current?.role ?? "—"}
       />
 
-      <div className="flex flex-col gap-6 px-4 py-4">
+      <div className="flex flex-col gap-6 px-3 py-4">
 
 
 
@@ -120,7 +120,7 @@ export default function DashboardPage() {
               value={formatAmount(summary.pendingCollect, "pendingCollect")}
               valueClassName="text-warning"
               sublabel="Pendiente"
-              href="/deudas"
+              href="/deudas?tab=collect"
               concealable
               concealed={concealedMetrics.pendingCollect}
               onToggleConcealed={() => toggleConcealed("pendingCollect")}
@@ -130,7 +130,7 @@ export default function DashboardPage() {
               label="Por pagar"
               value={formatAmount(summary.pendingPay, "pendingPay")}
               sublabel="Pendiente"
-              href="/deudas"
+              href="/deudas?tab=pay"
               concealable
               concealed={concealedMetrics.pendingPay}
               onToggleConcealed={() => toggleConcealed("pendingPay")}
@@ -140,7 +140,7 @@ export default function DashboardPage() {
 
         <div className="flex flex-col gap-3">
           <Link href="/estadisticas">
-            <Card className="flex !flex-row items-center !py-5 justify-between px-4">
+            <Card className="flex !flex-row items-center !py-5 justify-between px-3">
               <div>
                 <h3 className="font-semibold text-sm">Ver Estadísticas</h3>
                 <p className="mt-1 text-xs text-muted-foreground">
@@ -156,7 +156,7 @@ export default function DashboardPage() {
               <Button
                 variant="success"
                 fullWidth
-                className="justify-between px-4 py-5"
+                className="justify-between px-3 py-5"
                 iconRight={<ArrowRight className="h-5 w-5" />}
               >
                 Nueva venta
@@ -166,7 +166,7 @@ export default function DashboardPage() {
             <Link href="/compras" className="block w-full">
               <Button
                 fullWidth
-                className="justify-between px-4 py-5"
+                className="justify-between px-3 py-5"
                 iconRight={<ArrowRight className="h-5 w-5" />}
                 variant="secondary"
               >
@@ -191,7 +191,7 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : (
-            <Card className="px-3.5">
+            <Card className="px-3">
               <div className="mb-1 flex flex-col gap-0.5">
                 <h3 className="font-semibold text-sm">Más vendidos</h3>
                 <p className="text-xs text-slate-500">{periodLabel}</p>
