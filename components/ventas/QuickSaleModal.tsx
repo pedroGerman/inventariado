@@ -20,7 +20,6 @@ interface QuickSaleModalProps {
 export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalProps) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
-  const setMode = useCartStore((s) => s.setMode);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [applyTax, setApplyTax] = useState(false);
@@ -34,23 +33,25 @@ export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalP
     const finalAmount = getFinalAmount();
     if (finalAmount <= 0) return;
 
-    setMode(mode);
-    addItem({
-      id: uid("ci"),
-      product_id: null,
-      name: description || (mode === "sale" ? "Venta libre" : "Compra libre"),
-      quantity: 1,
-      unit_price: finalAmount,
-      total_price: finalAmount,
-      type: mode === "sale" ? "quick_sale" : "quick_purchase",
-    });
+    addItem(
+      {
+        id: uid("ci"),
+        product_id: null,
+        name: description || (mode === "sale" ? "Venta libre" : "Compra libre"),
+        quantity: 1,
+        unit_price: finalAmount,
+        total_price: finalAmount,
+        type: mode === "sale" ? "quick_sale" : "quick_purchase",
+      },
+      mode,
+    );
 
     setDescription("");
     setAmount("");
     onClose();
 
     if (chargeNow) {
-      router.push(mode === "sale" ? "/ventas/caja" : "/compras/caja");
+      router.push(mode === "sale" ? "/ventas/caja" : "/ventas/caja?tab=purchase");
     }
   }
 

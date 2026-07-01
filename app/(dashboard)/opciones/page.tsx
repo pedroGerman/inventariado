@@ -41,10 +41,10 @@ export default function OpcionesPage() {
     <>
       <Header title="Opciones" />
 
-      <div className="flex flex-col gap-8 px-4 py-4">
+      <div className="flex flex-col gap-8 px-3 py-4">
         <AccountProfileHeader />
 
-        <div className="flex flex-col gap-3">
+        {/* <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-card-foreground">
             Manejo de cuenta
           </h2>
@@ -67,7 +67,7 @@ export default function OpcionesPage() {
               </button>
             </div>
           </Card>
-        </div>
+        </div> */}
 
         <div className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold text-card-foreground">

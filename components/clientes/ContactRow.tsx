@@ -24,7 +24,7 @@ export function ContactRow({
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
           tone === "success"
-            ? "bg-primary/10 text-[var(--button-success)]"
+            ? "text-[var(--button-success)]"
             : "bg-destructive/10 text-destructive",
         )}
       >
@@ -48,7 +48,7 @@ export function ContactRow({
   const rowClassName = cn(
     "flex w-full items-center gap-3 py-3.5 text-left transition-colors",
     onClick && "hover:bg-surface-2 active:bg-surface-3",
-    selected && "bg-primary/5 ring-1 ring-inset ring-primary/20",
+    selected && "",
     className,
   );
 

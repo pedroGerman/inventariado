@@ -43,7 +43,11 @@ const tabs = [
 
 export function BottomNav() {
   const pathname = usePathname();
-  const itemCount = useCartStore((s) => s.getItemCount());
+  const isPurchaseFlow = pathname.startsWith("/compras");
+  const saleCount = useCartStore((s) => s.getItemCount("sale"));
+  const purchaseCount = useCartStore((s) => s.getItemCount("purchase"));
+  const itemCount = isPurchaseFlow ? purchaseCount : saleCount;
+  const carritoHref = isPurchaseFlow ? "/compras/carrito" : "/ventas/carrito";
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white safe-bottom">
@@ -51,11 +55,12 @@ export function BottomNav() {
         {tabs.map((tab) => {
           const isActive = tab.match(pathname);
           const Icon = tab.icon;
+          const href = tab.badge ? carritoHref : tab.href;
 
           return (
             <Link
               key={tab.href}
-              href={tab.href}
+              href={href}
               className={cn(
                 "relative flex flex-col items-center gap-0.5 px-2 py-1",
                 isActive ? "text-primary" : "text-slate-400",

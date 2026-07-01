@@ -15,10 +15,17 @@ export function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
   return (
     <div className="py-6 pr-0.5 flex w-full items-center gap-3 text-left">
 
-      <div className="flex size-16 shrink-0 items-center justify-center rounded-full bg-surface-2 shadow-segmented-track">
-        {/* <Package className="h-6 w-6 text-muted-foreground" /> */}
-        <Package className="h-6 w-6 text-muted-foreground" />
-        {/* <DollarSign className="h-5 w-5 text-primary" /> */}
+      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 shadow-segmented-track">
+        {item.image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.image_url}
+            alt={item.name}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <Package className="h-6 w-6 text-muted-foreground" />
+        )}
       </div>
 
       <div className="min-w-0 flex-1 flex flex-col">

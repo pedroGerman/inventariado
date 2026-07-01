@@ -40,11 +40,16 @@ function CartAction({
 
 export default function ComprasCarritoPage() {
   const router = useRouter();
-  const { items, updateQuantity, removeItem, clearCart, getTotal, getItemCount } =
-    useCartStore();
+  const purchaseItems = useCartStore((s) => s.purchaseItems);
+  const updateQuantity = useCartStore((s) => s.updateQuantity);
+  const removeItem = useCartStore((s) => s.removeItem);
+  const clearCart = useCartStore((s) => s.clearCart);
+  const getTotal = useCartStore((s) => s.getTotal);
+  const getItemCount = useCartStore((s) => s.getItemCount);
 
-  const itemCount = getItemCount();
-  const total = getTotal();
+  const itemCount = getItemCount("purchase");
+  const total = getTotal("purchase");
+  const items = purchaseItems;
 
   return (
     <>
@@ -72,8 +77,8 @@ export default function ComprasCarritoPage() {
             <CartItemRow
               key={item.id}
               item={item}
-              onUpdateQty={updateQuantity}
-              onRemove={removeItem}
+              onUpdateQty={(id, qty) => updateQuantity(id, qty, "purchase")}
+              onRemove={(id) => removeItem(id, "purchase")}
             />
           ))
         )}
@@ -91,7 +96,7 @@ export default function ComprasCarritoPage() {
                   icon={Trash2}
                   label="Borrar"
                   tone="danger"
-                  onClick={clearCart}
+                  onClick={() => clearCart("purchase")}
                 />
               </div>
 
@@ -125,7 +130,7 @@ export default function ComprasCarritoPage() {
                   fullWidth
                   size="sm"
                   className="!rounded-md py-5 text-xs font-bold"
-                  onClick={() => router.push("/compras/caja")}
+                  onClick={() => router.push("/ventas/caja?tab=purchase")}
                 >
                   Continuar
                 </Button>

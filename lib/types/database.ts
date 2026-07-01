@@ -149,12 +149,19 @@ export interface Purchase {
   date: string;
   created_at: string;
   items?: PurchaseItem[];
+  cash_paid?: number;
+  change?: number;
 }
+
+export type DebtKind = "collect" | "pay";
 
 export interface Debt {
   id: string;
-  order_id: string;
-  customer_id: string;
+  kind: DebtKind;
+  order_id: string | null;
+  purchase_id: string | null;
+  customer_id: string | null;
+  supplier_id: string | null;
   business_id: string;
   total: number;
   paid: number;

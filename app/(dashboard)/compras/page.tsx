@@ -13,13 +13,13 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { getCategories, getProducts, uid } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useCartStore } from "@/lib/store/cart";
+import { FloatingCartButton } from "@/components/ventas/FloatingCartButton";
 
 export default function ComprasPage() {
   useMockDBRefresh();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
   const addItem = useCartStore((s) => s.addItem);
-  const setMode = useCartStore((s) => s.setMode);
 
   const categories = getCategories("compras");
   let products = getProducts();
@@ -29,16 +29,19 @@ export default function ComprasPage() {
   }
 
   function handleAddProduct(product: (typeof products)[0]) {
-    setMode("purchase");
-    addItem({
-      id: uid("ci"),
-      product_id: product.id,
-      name: product.name,
-      quantity: 1,
-      unit_price: product.cost_price,
-      total_price: product.cost_price,
-      type: "product",
-    });
+    addItem(
+      {
+        id: uid("ci"),
+        product_id: product.id,
+        name: product.name,
+        quantity: 1,
+        unit_price: product.cost_price,
+        total_price: product.cost_price,
+        type: "product",
+        image_url: product.image_url,
+      },
+      "purchase",
+    );
   }
 
   return (
@@ -64,7 +67,7 @@ export default function ComprasPage() {
         }
       />
 
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
+      <div className="flex items-center justify-between gap-3 px-3 py-3">
         <Badge variant="danger">Modo compra</Badge>
         <Button
           asChild
@@ -73,7 +76,7 @@ export default function ComprasPage() {
           className="rounded-full"
           iconLeft={<ClipboardList className="h-3.5 w-3.5" />}
         >
-          <Link href="/compras/ordenes">Órdenes</Link>
+          <Link href="/ordenes?tab=purchase">Órdenes</Link>
         </Button>
       </div>
 
@@ -83,7 +86,7 @@ export default function ComprasPage() {
         onSelect={setSelectedCategory}
       />
 
-      <div className="grid grid-cols-3 gap-2.5 px-4 py-3 pb-8">
+      <div className="grid grid-cols-3 gap-2.5 px-3 py-3 pb-8">
         <ProductCard
           quickSale
           quickLabel="Compra Rápida"
@@ -111,6 +114,7 @@ export default function ComprasPage() {
         onClose={() => setQuickOpen(false)}
         mode="purchase"
       />
+      <FloatingCartButton mode="purchase" />
     </>
   );
 }

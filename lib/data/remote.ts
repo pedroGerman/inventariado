@@ -284,6 +284,8 @@ export async function remoteSavePurchase(purchase: Purchase): Promise<void> {
     total: purchase.total,
     date: purchase.date,
     created_at: purchase.created_at,
+    cash_paid: purchase.cash_paid ?? null,
+    change: purchase.change ?? null,
   });
 
   if (purchaseError) throw new Error(purchaseError.message);
@@ -307,8 +309,11 @@ export async function remoteSavePurchase(purchase: Purchase): Promise<void> {
 export async function remoteSaveDebt(debt: Debt): Promise<void> {
   const { error } = await supabase().from("debts").insert({
     id: debt.id,
+    kind: debt.kind,
     order_id: debt.order_id,
+    purchase_id: debt.purchase_id,
     customer_id: debt.customer_id,
+    supplier_id: debt.supplier_id,
     business_id: debt.business_id,
     total: debt.total,
     paid: debt.paid,

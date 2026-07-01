@@ -317,8 +317,11 @@ export const mockPurchases: Purchase[] = [
 export const mockDebts: Debt[] = [
   {
     id: "debt-001",
+    kind: "collect",
     order_id: "ord-002",
+    purchase_id: null,
     customer_id: "cust-002",
+    supplier_id: null,
     business_id: MOCK_BUSINESS_ID,
     total: 95,
     paid: 0,

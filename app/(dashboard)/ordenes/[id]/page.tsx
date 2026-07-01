@@ -133,7 +133,7 @@ export default function OrdenDetallePage() {
         }
       />
 
-      <div className="flex flex-col gap-6 px-4 py-4 pb-8">
+      <div className="flex flex-col gap-6 px-3 py-4 pb-8">
           <div className="divide-y divide-border/50 px-1 py-1">
             <DetailRow
               label="Fecha"
@@ -202,7 +202,7 @@ export default function OrdenDetallePage() {
             {debt && debt.remaining > 0 && (
               <Link
                 href={`/deudas/${debt.id}`}
-                className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-4 py-3 text-sm transition-colors hover:bg-amber-100"
+                className="flex items-center justify-between gap-3 rounded-xl bg-amber-50 px-3 py-3 text-sm transition-colors hover:bg-amber-100"
               >
                 <span className="inline-flex items-center gap-2 font-medium text-amber-900">
                   <Wallet className="h-4 w-4 shrink-0" />

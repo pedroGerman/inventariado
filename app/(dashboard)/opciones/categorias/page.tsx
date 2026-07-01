@@ -15,7 +15,7 @@ export default function CategoriasPage() {
     <>
       <Header title="Categorías" onRefresh={() => window.location.reload()} />
 
-      <div className="grid grid-cols-2 gap-4 px-4 py-4 pb-24">
+      <div className="grid grid-cols-2 gap-4 px-3 py-4 pb-24">
         {categories.map((cat) => (
           <Link
             key={cat.id}

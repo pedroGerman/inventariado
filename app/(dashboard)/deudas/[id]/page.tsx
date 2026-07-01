@@ -6,13 +6,16 @@ import { Ban, MoreHorizontal, Printer, Share2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import {
-  Card,
-  CardContent,
-} from "@/components/ui/Card";
+import { Card, CardContent } from "@/components/ui/Card";
 import { CheckoutSummary } from "@/components/caja/CheckoutSummary";
 import { PaymentModal } from "@/components/deudas/PaymentModal";
-import { getDebt, getOrder, getCustomers } from "@/lib/mock/db";
+import {
+  getDebt,
+  getOrder,
+  getPurchase,
+  getCustomers,
+  getSuppliers,
+} from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useEmployeeStore } from "@/lib/store/employee";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
@@ -94,20 +97,39 @@ export default function DeudaDetallePage() {
     );
   }
 
-  const order = getOrder(debt.order_id);
-  const customer = getCustomers().find((c) => c.id === debt.customer_id);
+  const isPayable = debt.kind === "pay";
+  const order = debt.order_id ? getOrder(debt.order_id) : undefined;
+  const purchase = debt.purchase_id ? getPurchase(debt.purchase_id) : undefined;
+  const customer = debt.customer_id
+    ? getCustomers().find((c) => c.id === debt.customer_id)
+    : undefined;
+  const supplier = debt.supplier_id
+    ? getSuppliers().find((s) => s.id === debt.supplier_id)
+    : undefined;
   const employee =
-    currentEmployee?.id === order?.employee_id ? currentEmployee : null;
+    currentEmployee?.id === (order?.employee_id ?? purchase?.employee_id)
+      ? currentEmployee
+      : null;
 
+  const reference = order ?? purchase;
+  const title =
+    order?.order_number ?? purchase?.purchase_number ?? "Deuda";
   const paymentLabel =
-    order?.payment_method != null
-      ? getPaymentMethodLabel(order.payment_method)
+    reference?.payment_method != null
+      ? getPaymentMethodLabel(reference.payment_method)
       : "—";
+
+  const items = order?.items ?? purchase?.items ?? [];
+  const subtotal = reference?.subtotal ?? 0;
+  const tax = reference?.tax ?? 0;
+  const service = order?.service ?? 0;
+  const discount = reference?.discount ?? 0;
+  const total = reference?.total ?? debt.total;
 
   return (
     <>
       <Header
-        title={order?.order_number ?? "Deuda"}
+        title={title}
         showBack
         backHref="/deudas"
         right={
@@ -125,52 +147,53 @@ export default function DeudaDetallePage() {
 
       <div className="flex flex-col gap-6 px-4 py-4 pb-8">
         <div className="flex gap-3">
-          <Button size="sm" className="!rounded-lg !py-5" fullWidth onClick={() => setPayModal("full")}>
-            {/* COBRAR TODO */}
-            Cobrar todo
+          <Button
+            size="sm"
+            className="!rounded-lg !py-5"
+            fullWidth
+            onClick={() => setPayModal("full")}
+          >
+            {isPayable ? "Pagar todo" : "Cobrar todo"}
           </Button>
-          <Button size="sm" className="!rounded-lg !py-5" fullWidth variant="dark" onClick={() => setPayModal("partial")}>
-            {/* ABONAR */}
+          <Button
+            size="sm"
+            className="!rounded-lg !py-5"
+            fullWidth
+            variant="dark"
+            onClick={() => setPayModal("partial")}
+          >
             Abonar
           </Button>
         </div>
 
-        {customer && (
-          <div className="flex items-center gap-3 rounded-2xl bg-white py-1 px-1 shadow-card">
+        {(customer || supplier) && (
+          <div className="flex items-center gap-3 rounded-2xl bg-white px-1 py-1 shadow-card">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
-              {customer.name.charAt(0)}
+              {(customer?.name ?? supplier?.name ?? "?").charAt(0)}
             </div>
             <div className="flex-1">
-              <p className="font-semibold">{customer.name}</p>
-              {customer.phone && (
+              <p className="font-semibold">{customer?.name ?? supplier?.name}</p>
+              {(customer?.phone ?? supplier?.phone) && (
                 <p className="text-sm text-slate-500">
-                  {formatPhoneDisplay(customer.phone)}
+                  {formatPhoneDisplay(customer?.phone ?? supplier?.phone ?? "")}
                 </p>
               )}
             </div>
-            {/* {customer.phone && (
-              <a
-                href={getWhatsAppUrl(customer.phone) ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full bg-green-100 p-2 text-primary"
-              >
-                <MessageCircle className="h-5 w-5" />
-              </a>
-            )} */}
           </div>
         )}
 
-        {order && (
+        {reference && (
           <>
             <div className="divide-y divide-border/50 px-1 py-1">
               <DetailRow
                 label="Fecha"
-                value={`${order.date} ${formatTime(order.created_at)}`}
+                value={`${reference.date} ${formatTime(reference.created_at)}`}
               />
               <DetailRow label="Método de pago" value={paymentLabel} />
               <DetailRow label="Estado">
-                <Badge variant="warning">Por Cobrar</Badge>
+                <Badge variant="warning">
+                  {isPayable ? "Por Pagar" : "Por Cobrar"}
+                </Badge>
               </DetailRow>
               {employee && <DetailRow label="Cajero" value={employee.name} />}
             </div>
@@ -180,7 +203,7 @@ export default function DeudaDetallePage() {
                 Productos
               </h2>
               <div className="divide-y divide-border/40">
-                {order.items?.map((item) => (
+                {items.map((item) => (
                   <div
                     key={item.id}
                     className="flex items-center justify-between gap-3 py-3 text-sm"
@@ -199,15 +222,15 @@ export default function DeudaDetallePage() {
 
             <div className="flex flex-col gap-3 px-1 py-4">
               <CheckoutSummary
-                subtotal={order.subtotal}
-                tax={order.tax}
-                service={order.service}
-                discount={order.discount}
-                total={order.total}
+                subtotal={subtotal}
+                tax={tax}
+                service={service}
+                discount={discount}
+                total={total}
               />
               <div className="flex flex-col gap-2 border-t border-border/50 pt-3 text-sm">
                 <div className="flex justify-between text-primary">
-                  <span>Abonado</span>
+                  <span>{isPayable ? "Pagado" : "Abonado"}</span>
                   <span className="shrink-0 text-xs font-medium tabular-nums">
                     {formatCurrency(debt.paid)}
                   </span>
@@ -238,6 +261,7 @@ export default function DeudaDetallePage() {
         debtId={debt.id}
         amount={debt.remaining}
         mode={payModal ?? "partial"}
+        flow={debt.kind}
         onSuccess={() => setTick((t) => t + 1)}
       />
     </>

@@ -43,6 +43,7 @@ export default function EditarCuentaPage() {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(
     initialAccount.avatar_url,
   );
+  const [saving, setSaving] = useState(false);
 
   const valid =
     fullName.trim().length > 0 &&
@@ -50,8 +51,9 @@ export default function EditarCuentaPage() {
     businessName.trim().length > 0;
 
   async function handleSave() {
-    if (!valid) return;
+    if (!valid || saving) return;
 
+    setSaving(true);
     const trimmedName = fullName.trim();
     const trimmedUsername =
       username.trim() || slugifyUsername(trimmedName) || "usuario";
@@ -71,7 +73,10 @@ export default function EditarCuentaPage() {
       });
     } else {
       const result = await saveProfile(profilePayload);
-      if (result.error) return;
+      if (result.error) {
+        setSaving(false);
+        return;
+      }
     }
 
     saveBusiness({
@@ -163,12 +168,13 @@ export default function EditarCuentaPage() {
         </section>
       </div>
 
-      <div className="fixed bottom-20 left-0 right-0 z-20 mx-auto max-w-mobile px-4 safe-bottom">
+      <div className="fixed bottom-20 left-0 right-0 z-20 mx-auto max-w-mobile border-t border-border/50 bg-white px-4 pb-3 pt-3 shadow-[0_-4px_12px_rgba(15,23,42,0.08)] safe-bottom">
         <Button
-          variant="default"
+          variant="success"
           fullWidth
           className="rounded-full py-3 text-sm font-bold"
-          disabled={!valid}
+          disabled={!valid || saving}
+          loading={saving}
           onClick={handleSave}
         >
           Guardar

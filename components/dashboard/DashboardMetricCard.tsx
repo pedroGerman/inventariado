@@ -33,7 +33,7 @@ export function DashboardMetricCard({
     ffElevatedMetricSurfaceClass,
     "flex flex-col px-3 pb-4 pt-2.5",
     href &&
-      "transition-[box-shadow,transform] hover:shadow-ff-surface-4 active:scale-[0.99]",
+      "transition-[box-shadow,transform] active:scale-[0.99]",
     className,
   );
 

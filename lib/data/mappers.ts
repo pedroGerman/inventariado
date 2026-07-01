@@ -144,14 +144,20 @@ export function mapPurchase(
     date: String(row.date),
     created_at: String(row.created_at),
     items,
+    cash_paid: row.cash_paid != null ? num(row.cash_paid) : undefined,
+    change: row.change != null ? num(row.change) : undefined,
   };
 }
 
 export function mapDebt(row: Record<string, unknown>): Debt {
+  const kind = (row.kind as Debt["kind"]) ?? "collect";
   return {
     id: String(row.id),
-    order_id: String(row.order_id),
-    customer_id: String(row.customer_id),
+    kind,
+    order_id: row.order_id ? String(row.order_id) : null,
+    purchase_id: row.purchase_id ? String(row.purchase_id) : null,
+    customer_id: row.customer_id ? String(row.customer_id) : null,
+    supplier_id: row.supplier_id ? String(row.supplier_id) : null,
     business_id: String(row.business_id),
     total: num(row.total),
     paid: num(row.paid),

@@ -182,7 +182,15 @@ export function getDebt(id: string): Debt | undefined {
 }
 
 export function getDebtByOrderId(orderId: string): Debt | undefined {
-  return getCache().debts.find((d) => d.order_id === orderId);
+  return getCache().debts.find(
+    (d) => d.kind === "collect" && d.order_id === orderId,
+  );
+}
+
+export function getDebtByPurchaseId(purchaseId: string): Debt | undefined {
+  return getCache().debts.find(
+    (d) => d.kind === "pay" && d.purchase_id === purchaseId,
+  );
 }
 
 export function getBusiness(): Business {
