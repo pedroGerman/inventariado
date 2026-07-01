@@ -80,6 +80,7 @@ export default function CompraDetallePage() {
   const { id } = useParams<{ id: string }>();
   const purchase = getPurchase(id);
   const suppliers = getSuppliers();
+  const currentEmployee = useEmployeeStore((s) => s.current);
 
   if (!purchase) {
     return (
@@ -91,7 +92,6 @@ export default function CompraDetallePage() {
   }
 
   const supplier = suppliers.find((s) => s.id === purchase.supplier_id);
-  const currentEmployee = useEmployeeStore((s) => s.current);
   const employee =
     currentEmployee?.id === purchase.employee_id ? currentEmployee : null;
 

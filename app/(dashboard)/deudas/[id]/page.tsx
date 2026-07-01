@@ -83,6 +83,7 @@ export default function DeudaDetallePage() {
   const debt = getDebt(id);
   const [payModal, setPayModal] = useState<"full" | "partial" | null>(null);
   const [, setTick] = useState(0);
+  const currentEmployee = useEmployeeStore((s) => s.current);
 
   if (!debt) {
     return (
@@ -95,7 +96,6 @@ export default function DeudaDetallePage() {
 
   const order = getOrder(debt.order_id);
   const customer = getCustomers().find((c) => c.id === debt.customer_id);
-  const currentEmployee = useEmployeeStore((s) => s.current);
   const employee =
     currentEmployee?.id === order?.employee_id ? currentEmployee : null;
 

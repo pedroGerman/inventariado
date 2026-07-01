@@ -53,9 +53,9 @@ function ComprasCajaPageContent() {
     router.replace("/compras/caja", { scroll: false });
   }, [searchParams, router]);
 
-  function handleFinalize() {
+  async function handleFinalize() {
     if (!current || items.length === 0) return;
-    finalizePurchase({
+    await finalizePurchase({
       items,
       employee: current,
       supplierId: checkout.supplier?.id ?? null,
