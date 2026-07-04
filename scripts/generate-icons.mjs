@@ -8,12 +8,13 @@ const iconsDir = path.join(__dirname, "..", "public", "icons");
 fs.mkdirSync(iconsDir, { recursive: true });
 
 function svg(size) {
-  const radius = Math.round(size * 0.2);
-  const fontSize = Math.round(size * 0.28);
+  const radius = Math.round(size * 0.22);
+  const fontSize = Math.round(size * 0.34);
   return Buffer.from(
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-      <rect width="${size}" height="${size}" rx="${radius}" fill="#22c55e"/>
-      <text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" fill="white" font-family="system-ui,sans-serif" font-weight="700" font-size="${fontSize}">POS</text>
+      <rect width="${size}" height="${size}" rx="${radius}" fill="#ffffff"/>
+      <rect x="2" y="2" width="${size - 4}" height="${size - 4}" rx="${radius - 2}" fill="none" stroke="#22c55e" stroke-width="3"/>
+      <text x="50%" y="52%" dominant-baseline="middle" text-anchor="middle" fill="#22c55e" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="${fontSize}" letter-spacing="1">INV</text>
     </svg>`,
   );
 }

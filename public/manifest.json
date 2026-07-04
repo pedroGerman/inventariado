@@ -1,6 +1,6 @@
 {
-  "name": "Mi POS App",
-  "short_name": "POS",
+  "name": "Inventariado",
+  "short_name": "INV",
   "description": "Punto de venta móvil",
   "start_url": "/",
   "display": "standalone",
