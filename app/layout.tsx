@@ -9,13 +9,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Mi POS App",
+  title: "Inventariado",
   description: "Punto de venta móvil",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "POS",
+    title: "INV",
   },
   icons: {
     icon: [
