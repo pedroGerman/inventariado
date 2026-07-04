@@ -98,7 +98,7 @@ export default function EditarCuentaPage() {
     <>
       <Header title="Editar perfil" showBack backHref="/opciones" />
 
-      <div className="flex flex-col gap-6 px-4 pb-28 pt-5">
+      <div className="flex flex-col gap-6 px-4 pb-7 pt-5">
         <section className="flex flex-col items-center gap-3 text-center">
           <AvatarImagePicker
             imageUrl={avatarUrl}
@@ -122,7 +122,7 @@ export default function EditarCuentaPage() {
         <section className="flex flex-col gap-7">
           <TextField
             label="Nombre completo"
-            className="h-11 rounded-xl text-sm"
+            className="h-11 rounded-lg text-sm"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="Tu nombre"
@@ -132,7 +132,7 @@ export default function EditarCuentaPage() {
           <TextField
             label="Correo electrónico"
             type="email"
-            className="h-11 rounded-xl text-sm"
+            className="h-11 rounded-lg text-sm"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="correo@ejemplo.com"
@@ -142,7 +142,7 @@ export default function EditarCuentaPage() {
           <TextField
             label="Teléfono"
             type="tel"
-            className="h-11 rounded-xl text-sm"
+            className="h-11 rounded-lg text-sm"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Opcional"
@@ -151,7 +151,7 @@ export default function EditarCuentaPage() {
 
           <TextField
             label="Usuario"
-            className="h-11 rounded-xl text-sm"
+            className="h-11 rounded-lg text-sm"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="nombreusuario"
@@ -160,7 +160,7 @@ export default function EditarCuentaPage() {
 
           <TextField
             label="Nombre del negocio"
-            className="h-11 rounded-xl text-sm"
+            className="h-11 rounded-lg text-sm"
             value={businessName}
             onChange={(e) => setBusinessName(e.target.value)}
             placeholder="Nombre de tu tienda"
@@ -168,7 +168,7 @@ export default function EditarCuentaPage() {
         </section>
       </div>
 
-      <div className="fixed bottom-20 left-0 right-0 z-20 mx-auto max-w-mobile border-t border-border/50 bg-white px-4 pb-3 pt-3 shadow-[0_-4px_12px_rgba(15,23,42,0.08)] safe-bottom">
+      <div className="mx-auto max-w-mobile px-4 ">
         <Button
           variant="success"
           fullWidth

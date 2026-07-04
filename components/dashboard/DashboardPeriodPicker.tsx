@@ -136,7 +136,7 @@ export function DashboardPeriodPicker({
         onClick={() => setOpen((current) => !current)}
         className={cn(
           ffElevatedMetricSurfaceClass,
-          "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-[box-shadow,transform] hover:shadow-ff-surface-4 active:scale-[0.99]",
+          "flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition-[box-shadow,transform] active:scale-[0.99]",
           open && "shadow-ff-surface-4",
         )}
         aria-expanded={open}
