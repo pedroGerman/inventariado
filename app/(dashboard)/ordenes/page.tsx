@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { DollarSign, Search, ShoppingBag } from "lucide-react";
 import { Header } from "@/components/layout/Header";
-import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { TextField } from "@/components/ui/Input";
+import { DateFilterPicker } from "@/components/ui/DateFilterPicker";
 import { EmptyState } from "@/components/ui/EmptyState";
 import {
   getCustomers,
@@ -18,6 +18,7 @@ import {
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDateGroup, formatTime } from "@/lib/utils/date";
+import { sortDateKeysDesc, type DateFilterValue } from "@/lib/utils/calendarPicker";
 
 type OrderTab = "sale" | "purchase";
 
@@ -33,7 +34,8 @@ function OrdenesPageContent() {
   useMockDBRefresh();
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<OrderTab>("sale");
-  const [filterDate, setFilterDate] = useState("");
+  const [filterDate, setFilterDate] = useState<DateFilterValue>(null);
+  const [search, setSearch] = useState("");
 
   const orders = getOrders();
   const purchases = getPurchases();
@@ -47,35 +49,78 @@ function OrdenesPageContent() {
   }, [searchParams]);
 
   const isSale = tab === "sale";
+  const query = search.trim().toLowerCase();
 
-  const saleFiltered = filterDate
-    ? orders.filter((o) => o.date === filterDate)
-    : orders;
-  const purchaseFiltered = filterDate
-    ? purchases.filter((p) => p.date === filterDate)
-    : purchases;
+  const saleFiltered = useMemo(() => {
+    return orders.filter((order) => {
+      if (filterDate && order.date !== filterDate) return false;
+      if (!query) return true;
+      const customer = customers.find((c) => c.id === order.customer_id);
+      return (
+        order.order_number.toLowerCase().includes(query) ||
+        (customer?.name.toLowerCase().includes(query) ?? false)
+      );
+    });
+  }, [orders, filterDate, query, customers]);
 
-  const saleGrouped = saleFiltered.reduce<Record<string, typeof saleFiltered>>(
-    (acc, order) => {
-      if (!acc[order.date]) acc[order.date] = [];
-      acc[order.date].push(order);
-      return acc;
-    },
-    {},
-  );
+  const purchaseFiltered = useMemo(() => {
+    return purchases.filter((purchase) => {
+      if (filterDate && purchase.date !== filterDate) return false;
+      if (!query) return true;
+      const supplier = suppliers.find((s) => s.id === purchase.supplier_id);
+      return (
+        purchase.purchase_number.toLowerCase().includes(query) ||
+        (supplier?.name.toLowerCase().includes(query) ?? false)
+      );
+    });
+  }, [purchases, filterDate, query, suppliers]);
 
-  const purchaseGrouped = purchaseFiltered.reduce<
-    Record<string, typeof purchaseFiltered>
-  >((acc, purchase) => {
-    if (!acc[purchase.date]) acc[purchase.date] = [];
-    acc[purchase.date].push(purchase);
-    return acc;
-  }, {});
-
-  const groupedEntries = isSale
-    ? Object.entries(saleGrouped)
-    : Object.entries(purchaseGrouped);
   const filtered = isSale ? saleFiltered : purchaseFiltered;
+
+  const groupedEntries = useMemo(() => {
+    if (isSale) {
+      const grouped = saleFiltered.reduce<Record<string, typeof saleFiltered>>(
+        (acc, order) => {
+          if (!acc[order.date]) acc[order.date] = [];
+          acc[order.date].push(order);
+          return acc;
+        },
+        {},
+      );
+
+      return sortDateKeysDesc(Object.keys(grouped)).map(
+        (date) =>
+          [
+            date,
+            grouped[date].sort(
+              (a, b) =>
+                new Date(b.created_at).getTime() -
+                new Date(a.created_at).getTime(),
+            ),
+          ] as const,
+      );
+    }
+
+    const grouped = purchaseFiltered.reduce<
+      Record<string, typeof purchaseFiltered>
+    >((acc, purchase) => {
+      if (!acc[purchase.date]) acc[purchase.date] = [];
+      acc[purchase.date].push(purchase);
+      return acc;
+    }, {});
+
+    return sortDateKeysDesc(Object.keys(grouped)).map(
+      (date) =>
+        [
+          date,
+          grouped[date].sort(
+            (a, b) =>
+              new Date(b.created_at).getTime() -
+              new Date(a.created_at).getTime(),
+          ),
+        ] as const,
+    );
+  }, [isSale, saleFiltered, purchaseFiltered]);
 
   return (
     <>
@@ -93,25 +138,16 @@ function OrdenesPageContent() {
         />
 
         <div className="flex flex-col gap-3">
+
           <TextField
             type="text"
             leftIcon={<Search className="h-4 w-4" />}
-            value={filterDate}
+            value={search}
             className="placeholder:text-sm"
-            onChange={(e) => setFilterDate(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar"
           />
-
-          <div className="flex items-center justify-between gap-3">
-            <Button className="w-full !rounded-md !text-xs" size="sm">
-              Seleccionar fecha
-            </Button>
-            <Link href="/deudas" className="w-full">
-              <Button className="w-full !rounded-md !text-xs" size="sm">
-                Ir a deudas
-              </Button>
-            </Link>
-          </div>
+          <DateFilterPicker value={filterDate} onChange={setFilterDate} />
         </div>
 
         {groupedEntries.map(([date, dateItems]) => (
@@ -122,75 +158,75 @@ function OrdenesPageContent() {
             <div className="flex flex-col divide-y divide-slate-200">
               {isSale
                 ? (dateItems as typeof saleFiltered).map((order) => {
-                    const customer = customers.find(
-                      (c) => c.id === order.customer_id,
-                    );
-                    return (
-                      <div key={order.id} className="gap-0 py-4">
-                        <Link
-                          href={`/ordenes/${order.id}`}
-                          className="flex w-full items-center gap-3 text-left"
-                        >
-                          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface-2 shadow-segmented-track">
-                            <DollarSign className="h-5 w-5 text-primary" />
-                          </div>
+                  const customer = customers.find(
+                    (c) => c.id === order.customer_id,
+                  );
+                  return (
+                    <div key={order.id} className="gap-0 py-4">
+                      <Link
+                        href={`/ordenes/${order.id}`}
+                        className="flex w-full items-center gap-3 text-left"
+                      >
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface-2 shadow-segmented-track">
+                          <DollarSign className="h-5 w-5 text-primary" />
+                        </div>
 
-                          <div className="flex min-w-0 flex-1 flex-col">
-                            <p className="truncate text-sm text-card-foreground">
-                              {order.order_number}
-                            </p>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                              <span>{customer?.name ?? "Sin cliente"}</span>
-                            </div>
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <p className="truncate text-sm text-card-foreground">
+                            {order.order_number}
+                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+                            <span>{customer?.name ?? "Sin cliente"}</span>
                           </div>
+                        </div>
 
-                          <div className="flex flex-col gap-1 text-right">
-                            <p className="text-xs font-semibold text-slate-900">
-                              {formatCurrency(order.total)}
-                            </p>
-                            <p className="truncate text-xs text-slate-500">
-                              {formatTime(order.created_at)}
-                            </p>
-                          </div>
-                        </Link>
-                      </div>
-                    );
-                  })
+                        <div className="flex flex-col gap-1 text-right">
+                          <p className="text-xs font-semibold text-slate-900">
+                            {formatCurrency(order.total)}
+                          </p>
+                          <p className="truncate text-xs text-slate-500">
+                            {formatTime(order.created_at)}
+                          </p>
+                        </div>
+                      </Link>
+                    </div>
+                  );
+                })
                 : (dateItems as typeof purchaseFiltered).map((purchase) => {
-                    const supplier = suppliers.find(
-                      (s) => s.id === purchase.supplier_id,
-                    );
-                    return (
-                      <div key={purchase.id} className="gap-0 py-4">
-                        <Link
-                          href={`/compras/ordenes/${purchase.id}`}
-                          className="flex w-full items-center gap-3 text-left"
-                        >
-                          <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface-2 shadow-segmented-track">
-                            <ShoppingBag className="h-5 w-5 text-danger" />
-                          </div>
+                  const supplier = suppliers.find(
+                    (s) => s.id === purchase.supplier_id,
+                  );
+                  return (
+                    <div key={purchase.id} className="gap-0 py-4">
+                      <Link
+                        href={`/compras/ordenes/${purchase.id}`}
+                        className="flex w-full items-center gap-3 text-left"
+                      >
+                        <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface-2 shadow-segmented-track">
+                          <ShoppingBag className="h-5 w-5 text-danger" />
+                        </div>
 
-                          <div className="flex min-w-0 flex-1 flex-col">
-                            <p className="truncate text-sm text-card-foreground">
-                              {purchase.purchase_number}
-                            </p>
-                            <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                              <span>{supplier?.name ?? "Sin proveedor"}</span>
-                            </div>
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <p className="truncate text-sm text-card-foreground">
+                            {purchase.purchase_number}
+                          </p>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
+                            <span>{supplier?.name ?? "Sin proveedor"}</span>
                           </div>
+                        </div>
 
-                          <div className="flex flex-col gap-1 text-right">
-                            <p className="text-xs font-semibold text-slate-900">
-                              {formatCurrency(purchase.total)}
-                            </p>
-                            <p className="truncate text-xs text-slate-500">
-                              {formatTime(purchase.created_at)}
-                            </p>
-                          </div>
-                        </Link>
-                      </div>
-                    );
-                  })}
+                        <div className="flex flex-col gap-1 text-right">
+                          <p className="text-xs font-semibold text-slate-900">
+                            {formatCurrency(purchase.total)}
+                          </p>
+                          <p className="truncate text-xs text-slate-500">
+                            {formatTime(purchase.created_at)}
+                          </p>
+                        </div>
+                      </Link>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         ))}

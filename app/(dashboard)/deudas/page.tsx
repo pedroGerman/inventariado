@@ -14,8 +14,10 @@ import {
   getSuppliers,
 } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
+import { DateFilterPicker } from "@/components/ui/DateFilterPicker";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDateGroup, formatTime } from "@/lib/utils/date";
+import { sortDateKeysDesc, type DateFilterValue } from "@/lib/utils/calendarPicker";
 import { cn } from "@/lib/utils/cn";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ffElevatedMetricSurfaceClass } from "@/lib/utils/ff-surfaces";
@@ -36,6 +38,7 @@ function DeudasPageContent() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<DebtTab>("collect");
   const [concealed, setConcealed] = useState(true);
+  const [filterDate, setFilterDate] = useState<DateFilterValue>(null);
 
   const debts = getDebts();
   const orders = getOrders();
@@ -53,20 +56,42 @@ function DeudasPageContent() {
   }, [searchParams]);
 
   const isCollect = tab === "collect";
-  const collectDebts = debts.filter((d) => d.kind === "collect" && d.remaining > 0);
-  const payDebts = debts.filter((d) => d.kind === "pay" && d.remaining > 0);
+
+  const allCollectDebts = debts.filter((d) => d.kind === "collect" && d.remaining > 0);
+  const allPayDebts = debts.filter((d) => d.kind === "pay" && d.remaining > 0);
+
+  const collectDebts = allCollectDebts.filter((d) => {
+    if (!filterDate) return true;
+    return d.created_at.split("T")[0] === filterDate;
+  });
+  const payDebts = allPayDebts.filter((d) => {
+    if (!filterDate) return true;
+    return d.created_at.split("T")[0] === filterDate;
+  });
   const displayDebts = isCollect ? collectDebts : payDebts;
 
-  const pendingCollect = collectDebts.reduce((s, d) => s + d.remaining, 0);
-  const pendingPay = payDebts.reduce((s, d) => s + d.remaining, 0);
+  const pendingCollect = allCollectDebts.reduce((s, d) => s + d.remaining, 0);
+  const pendingPay = allPayDebts.reduce((s, d) => s + d.remaining, 0);
   const pendingTotal = isCollect ? pendingCollect : pendingPay;
 
-  const grouped = displayDebts.reduce<Record<string, Debt[]>>((acc, debt) => {
-    const date = debt.created_at.split("T")[0];
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(debt);
-    return acc;
-  }, {});
+  const groupedEntries = sortDateKeysDesc(
+    Object.keys(
+      displayDebts.reduce<Record<string, Debt[]>>((acc, debt) => {
+        const date = debt.created_at.split("T")[0];
+        if (!acc[date]) acc[date] = [];
+        acc[date].push(debt);
+        return acc;
+      }, {}),
+    ),
+  ).map((date) => {
+    const dateDebts = displayDebts
+      .filter((d) => d.created_at.split("T")[0] === date)
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    return [date, dateDebts] as const;
+  });
 
   return (
     <>
@@ -83,7 +108,9 @@ function DeudasPageContent() {
           ]}
         />
 
-        <div
+
+       <section className="flex flex-col gap-4">
+       <div
           className={cn(
             "w-full rounded-xl px-3.5 py-4",
             isCollect
@@ -133,8 +160,8 @@ function DeudasPageContent() {
               className={cn(
                 "col-start-3 row-start-2 rounded-full p-1",
                 isCollect
-                  ? "text-white/80 hover:bg-white/20 hover:text-white"
-                  : "text-muted-foreground hover:bg-surface-3",
+                  ? "text-white/80 active:bg-white/20"
+                  : "text-muted-foreground active:bg-surface-3",
               )}
             >
               {concealed ? (
@@ -146,7 +173,11 @@ function DeudasPageContent() {
           </div>
         </div>
 
-        {Object.entries(grouped).map(([date, dateDebts]) => (
+        <DateFilterPicker value={filterDate} onChange={setFilterDate} />
+       </section>
+
+
+        {groupedEntries.map(([date, dateDebts]) => (
           <div key={date} className="flex flex-col gap-1">
             <h2 className="mb-2 text-sm font-semibold capitalize text-slate-500">
               {formatDateGroup(date)}
