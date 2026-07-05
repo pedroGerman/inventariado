@@ -2,13 +2,18 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { DollarSign, Search, ShoppingBag } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Search } from "lucide-react";
 import { Header } from "@/components/layout/Header";
+import { OrderListIcon } from "@/components/ordenes/OrderListIcon";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { TextField } from "@/components/ui/Input";
 import { DateFilterPicker } from "@/components/ui/DateFilterPicker";
 import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  OrderStatusFilterButton,
+  OrderStatusFilterPills,
+} from "@/components/ordenes/OrderStatusFilter";
 import {
   getCustomers,
   getOrders,
@@ -18,9 +23,15 @@ import {
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDateGroup, formatTime } from "@/lib/utils/date";
+import { isQuoteOrder, isQuotePurchase } from "@/lib/utils/pendingOrder";
+import {
+  getStatusFilterLabel,
+  matchesStatusFilter,
+  parseStatusFilterFromSearchParams,
+  serializeStatusFilter,
+  type OrderListTab,
+} from "@/lib/utils/orderStatusFilter";
 import { sortDateKeysDesc, type DateFilterValue } from "@/lib/utils/calendarPicker";
-
-type OrderTab = "sale" | "purchase";
 
 export default function OrdenesPage() {
   return (
@@ -32,10 +43,15 @@ export default function OrdenesPage() {
 
 function OrdenesPageContent() {
   useMockDBRefresh();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<OrderTab>("sale");
+  const [tab, setTab] = useState<OrderListTab>("sale");
   const [filterDate, setFilterDate] = useState<DateFilterValue>(null);
   const [search, setSearch] = useState("");
+  const [statusFilters, setStatusFilters] = useState<Set<string>>(() =>
+    parseStatusFilterFromSearchParams(searchParams),
+  );
 
   const orders = getOrders();
   const purchases = getPurchases();
@@ -46,13 +62,32 @@ function OrdenesPageContent() {
     if (searchParams.get("tab") === "purchase") {
       setTab("purchase");
     }
+    setStatusFilters(parseStatusFilterFromSearchParams(searchParams));
   }, [searchParams]);
+
+  function updateStatusFilters(next: Set<string>) {
+    setStatusFilters(next);
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("pending");
+
+    const serialized = serializeStatusFilter(next);
+    if (serialized) {
+      params.set("status", serialized);
+    } else {
+      params.delete("status");
+    }
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
 
   const isSale = tab === "sale";
   const query = search.trim().toLowerCase();
 
   const saleFiltered = useMemo(() => {
     return orders.filter((order) => {
+      if (!matchesStatusFilter(order.status, statusFilters)) return false;
       if (filterDate && order.date !== filterDate) return false;
       if (!query) return true;
       const customer = customers.find((c) => c.id === order.customer_id);
@@ -61,10 +96,11 @@ function OrdenesPageContent() {
         (customer?.name.toLowerCase().includes(query) ?? false)
       );
     });
-  }, [orders, filterDate, query, customers]);
+  }, [orders, filterDate, query, customers, statusFilters]);
 
   const purchaseFiltered = useMemo(() => {
     return purchases.filter((purchase) => {
+      if (!matchesStatusFilter(purchase.status, statusFilters)) return false;
       if (filterDate && purchase.date !== filterDate) return false;
       if (!query) return true;
       const supplier = suppliers.find((s) => s.id === purchase.supplier_id);
@@ -73,7 +109,7 @@ function OrdenesPageContent() {
         (supplier?.name.toLowerCase().includes(query) ?? false)
       );
     });
-  }, [purchases, filterDate, query, suppliers]);
+  }, [purchases, filterDate, query, suppliers, statusFilters]);
 
   const filtered = isSale ? saleFiltered : purchaseFiltered;
 
@@ -122,6 +158,30 @@ function OrdenesPageContent() {
     );
   }, [isSale, saleFiltered, purchaseFiltered]);
 
+  const emptyTitle = useMemo(() => {
+    if (statusFilters.size > 0) {
+      if (statusFilters.size === 1) {
+        const label = getStatusFilterLabel(Array.from(statusFilters)[0], tab);
+        return isSale
+          ? `No hay órdenes ${label.toLowerCase()}s`
+          : `No hay compras ${label.toLowerCase()}s`;
+      }
+      return isSale ? "No hay órdenes con esos filtros" : "No hay compras con esos filtros";
+    }
+
+    return isSale ? "No hay órdenes" : "No hay compras registradas";
+  }, [isSale, statusFilters, tab]);
+
+  const emptyDescription = useMemo(() => {
+    if (statusFilters.size > 0) {
+      return "Prueba con otro estado o limpia los filtros para ver todo el historial.";
+    }
+
+    return isSale
+      ? "Las ventas completadas aparecerán aquí."
+      : "Las órdenes de compra aparecerán aquí.";
+  }, [isSale, statusFilters.size]);
+
   return (
     <>
       <Header title={isSale ? "Órdenes de Venta" : "Órdenes de Compra"} />
@@ -138,7 +198,6 @@ function OrdenesPageContent() {
         />
 
         <div className="flex flex-col gap-3">
-
           <TextField
             type="text"
             leftIcon={<Search className="h-4 w-4" />}
@@ -147,7 +206,25 @@ function OrdenesPageContent() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar"
           />
-          <DateFilterPicker value={filterDate} onChange={setFilterDate} />
+
+          <OrderStatusFilterPills
+            tab={tab}
+            selected={statusFilters}
+            onChange={updateStatusFilters}
+          />
+
+          <div className="flex items-stretch gap-2">
+            <DateFilterPicker
+              value={filterDate}
+              onChange={setFilterDate}
+              className="min-w-0 flex-1"
+            />
+            <OrderStatusFilterButton
+              tab={tab}
+              selected={statusFilters}
+              onChange={updateStatusFilters}
+            />
+          </div>
         </div>
 
         {groupedEntries.map(([date, dateItems]) => (
@@ -164,20 +241,26 @@ function OrdenesPageContent() {
                   return (
                     <div key={order.id} className="gap-0 py-4">
                       <Link
-                        href={`/ordenes/${order.id}`}
+                        href={
+                          order.status === "pending" && isQuoteOrder(order)
+                            ? `/ordenes/${order.id}/cotizacion`
+                            : `/ordenes/${order.id}`
+                        }
                         className="flex w-full items-center gap-3 text-left"
                       >
-                        <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface-2 shadow-segmented-track">
-                          <DollarSign className="h-5 w-5 text-primary" />
-                        </div>
+                        <OrderListIcon
+                          kind="sale"
+                          status={order.status}
+                          paymentMethod={order.payment_method}
+                        />
 
                         <div className="flex min-w-0 flex-1 flex-col">
                           <p className="truncate text-sm text-card-foreground">
                             {order.order_number}
                           </p>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                            <span>{customer?.name ?? "Sin cliente"}</span>
-                          </div>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {customer?.name ?? "Sin cliente"}
+                          </p>
                         </div>
 
                         <div className="flex flex-col gap-1 text-right">
@@ -199,20 +282,26 @@ function OrdenesPageContent() {
                   return (
                     <div key={purchase.id} className="gap-0 py-4">
                       <Link
-                        href={`/compras/ordenes/${purchase.id}`}
+                        href={
+                          purchase.status === "pending" && isQuotePurchase(purchase)
+                            ? `/compras/ordenes/${purchase.id}/cotizacion`
+                            : `/compras/ordenes/${purchase.id}`
+                        }
                         className="flex w-full items-center gap-3 text-left"
                       >
-                        <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-surface-2 shadow-segmented-track">
-                          <ShoppingBag className="h-5 w-5 text-danger" />
-                        </div>
+                        <OrderListIcon
+                          kind="purchase"
+                          status={purchase.status}
+                          paymentMethod={purchase.payment_method}
+                        />
 
                         <div className="flex min-w-0 flex-1 flex-col">
                           <p className="truncate text-sm text-card-foreground">
                             {purchase.purchase_number}
                           </p>
-                          <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                            <span>{supplier?.name ?? "Sin proveedor"}</span>
-                          </div>
+                          <p className="mt-1 truncate text-xs text-muted-foreground">
+                            {supplier?.name ?? "Sin proveedor"}
+                          </p>
                         </div>
 
                         <div className="flex flex-col gap-1 text-right">
@@ -232,14 +321,7 @@ function OrdenesPageContent() {
         ))}
 
         {filtered.length === 0 && (
-          <EmptyState
-            title={isSale ? "No hay órdenes" : "No hay compras registradas"}
-            description={
-              isSale
-                ? "Las ventas completadas aparecerán aquí."
-                : "Las órdenes de compra aparecerán aquí."
-            }
-          />
+          <EmptyState title={emptyTitle} description={emptyDescription} />
         )}
       </div>
     </>

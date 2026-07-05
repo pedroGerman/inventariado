@@ -30,13 +30,23 @@ function sumCount(items: CartItem[]) {
   return items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
+function pendingKey(mode: CartMode): "pendingSaleOrderId" | "pendingPurchaseId" {
+  return mode === "sale" ? "pendingSaleOrderId" : "pendingPurchaseId";
+}
+
 interface CartStore {
   saleItems: CartItem[];
   purchaseItems: CartItem[];
+  pendingSaleOrderId: string | null;
+  pendingPurchaseId: string | null;
   addItem: (item: CartItem, mode: CartMode) => void;
   removeItem: (id: string, mode: CartMode) => void;
   updateQuantity: (id: string, quantity: number, mode: CartMode) => void;
   clearCart: (mode: CartMode) => void;
+  clearPendingLink: (mode: CartMode) => void;
+  loadPending: (items: CartItem[], pendingId: string, mode: CartMode) => void;
+  replaceItems: (items: CartItem[], mode: CartMode) => void;
+  getPendingId: (mode: CartMode) => string | null;
   getItems: (mode: CartMode) => CartItem[];
   getTotal: (mode: CartMode) => number;
   getItemCount: (mode: CartMode) => number;
@@ -47,8 +57,26 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       saleItems: [],
       purchaseItems: [],
+      pendingSaleOrderId: null,
+      pendingPurchaseId: null,
 
       getItems: (mode) => get()[itemsKey(mode)],
+
+      getPendingId: (mode) => get()[pendingKey(mode)],
+
+      loadPending: (items, pendingId, mode) => {
+        set({
+          [itemsKey(mode)]: items,
+          [pendingKey(mode)]: pendingId,
+        });
+      },
+
+      replaceItems: (items, mode) => {
+        set({
+          [itemsKey(mode)]: items,
+          [pendingKey(mode)]: null,
+        });
+      },
 
       addItem: (item, mode) => {
         const key = itemsKey(mode);
@@ -103,7 +131,14 @@ export const useCartStore = create<CartStore>()(
       },
 
       clearCart: (mode) => {
-        set({ [itemsKey(mode)]: [] });
+        set({
+          [itemsKey(mode)]: [],
+          [pendingKey(mode)]: null,
+        });
+      },
+
+      clearPendingLink: (mode) => {
+        set({ [pendingKey(mode)]: null });
       },
 
       getTotal: (mode) => sumTotal(get()[itemsKey(mode)]),
@@ -112,21 +147,38 @@ export const useCartStore = create<CartStore>()(
     }),
     {
       name: "pos-cart",
-      version: 1,
-      migrate: (persistedState) => {
+      version: 2,
+      migrate: (persistedState, version) => {
         const state = persistedState as Record<string, unknown> | undefined;
-        if (!state) return { saleItems: [], purchaseItems: [] };
-
-        if ("saleItems" in state && "purchaseItems" in state) {
-          return persistedState;
+        if (!state) {
+          return {
+            saleItems: [],
+            purchaseItems: [],
+            pendingSaleOrderId: null,
+            pendingPurchaseId: null,
+          };
         }
 
-        const oldItems = (state.items as CartItem[]) ?? [];
-        const oldMode = (state.mode as CartMode) ?? "sale";
-        return {
-          saleItems: oldMode === "sale" ? oldItems : [],
-          purchaseItems: oldMode === "purchase" ? oldItems : [],
-        };
+        if (version === 0 || version === 1) {
+          if ("saleItems" in state && "purchaseItems" in state) {
+            return {
+              ...state,
+              pendingSaleOrderId: null,
+              pendingPurchaseId: null,
+            };
+          }
+
+          const oldItems = (state.items as CartItem[]) ?? [];
+          const oldMode = (state.mode as CartMode) ?? "sale";
+          return {
+            saleItems: oldMode === "sale" ? oldItems : [],
+            purchaseItems: oldMode === "purchase" ? oldItems : [],
+            pendingSaleOrderId: null,
+            pendingPurchaseId: null,
+          };
+        }
+
+        return persistedState;
       },
     },
   ),

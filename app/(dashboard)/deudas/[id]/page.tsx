@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Ban, MoreHorizontal, Printer, Share2 } from "lucide-react";
+import { Printer } from "lucide-react";
+import { DebtDetailActions } from "@/components/deudas/DebtDetailActions";
+import { usePurchaseOrderDownloadPdf } from "@/components/ordenes/PurchaseOrderDetailActions";
+import { useSaleOrderDownloadPdf } from "@/components/ordenes/SaleOrderDetailActions";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { Card, CardContent } from "@/components/ui/Card";
 import { CheckoutSummary } from "@/components/caja/CheckoutSummary";
 import { PaymentModal } from "@/components/deudas/PaymentModal";
 import {
@@ -22,6 +24,7 @@ import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
 import { formatPhoneDisplay } from "@/lib/utils/phone";
 import { getPaymentMethodLabel } from "@/lib/utils/paymentMethod";
+import { mockEmployees } from "@/lib/mock/seed";
 import { cn } from "@/lib/utils/cn";
 
 function DetailRow({
@@ -52,34 +55,6 @@ function DetailRow({
   );
 }
 
-function ActionButton({
-  icon: Icon,
-  label,
-  tone = "default",
-  onClick,
-}: {
-  icon: React.ElementType;
-  label: string;
-  tone?: "default" | "danger";
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-medium transition-colors",
-        tone === "danger"
-          ? "text-destructive hover:bg-red-50"
-          : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
-      )}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </button>
-  );
-}
-
 export default function DeudaDetallePage() {
   useMockDBRefresh();
   const { id } = useParams<{ id: string }>();
@@ -87,6 +62,37 @@ export default function DeudaDetallePage() {
   const [payModal, setPayModal] = useState<"full" | "partial" | null>(null);
   const [, setTick] = useState(0);
   const currentEmployee = useEmployeeStore((s) => s.current);
+  const order = debt?.order_id ? getOrder(debt.order_id) : undefined;
+  const purchase = debt?.purchase_id ? getPurchase(debt.purchase_id) : undefined;
+  const customer = debt?.customer_id
+    ? getCustomers().find((c) => c.id === debt.customer_id)
+    : undefined;
+  const supplier = debt?.supplier_id
+    ? getSuppliers().find((s) => s.id === debt.supplier_id)
+    : undefined;
+  const employee =
+    mockEmployees.find(
+      (e) => e.id === (order?.employee_id ?? purchase?.employee_id),
+    ) ??
+    (currentEmployee?.id === (order?.employee_id ?? purchase?.employee_id)
+      ? currentEmployee
+      : null);
+  const saleDownload = useSaleOrderDownloadPdf({
+    order,
+    customer,
+    employeeName: employee?.name,
+    debt,
+  });
+  const purchaseDownload = usePurchaseOrderDownloadPdf({
+    purchase,
+    supplier,
+    employeeName: employee?.name,
+    debt,
+  });
+  const downloadPdf = order ? saleDownload.downloadPdf : purchaseDownload.downloadPdf;
+  const downloadingPdf = order
+    ? saleDownload.downloading
+    : purchaseDownload.downloading;
 
   if (!debt) {
     return (
@@ -98,19 +104,6 @@ export default function DeudaDetallePage() {
   }
 
   const isPayable = debt.kind === "pay";
-  const order = debt.order_id ? getOrder(debt.order_id) : undefined;
-  const purchase = debt.purchase_id ? getPurchase(debt.purchase_id) : undefined;
-  const customer = debt.customer_id
-    ? getCustomers().find((c) => c.id === debt.customer_id)
-    : undefined;
-  const supplier = debt.supplier_id
-    ? getSuppliers().find((s) => s.id === debt.supplier_id)
-    : undefined;
-  const employee =
-    currentEmployee?.id === (order?.employee_id ?? purchase?.employee_id)
-      ? currentEmployee
-      : null;
-
   const reference = order ?? purchase;
   const title =
     order?.order_number ?? purchase?.purchase_number ?? "Deuda";
@@ -133,15 +126,19 @@ export default function DeudaDetallePage() {
         showBack
         backHref="/deudas"
         right={
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="rounded-full"
-            aria-label="Imprimir recibo"
-          >
-            <Printer className="h-4 w-4" />
-          </Button>
+          reference && reference.status !== "cancelled" ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              aria-label="Descargar PDF"
+              disabled={downloadingPdf}
+              onClick={() => void downloadPdf()}
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
+          ) : undefined
         }
       />
 
@@ -246,13 +243,16 @@ export default function DeudaDetallePage() {
           </>
         )}
 
-        <Card className="gap-0 !py-0">
-          <CardContent className="grid grid-cols-3 !justify-between gap-1 !px-2 !py-1">
-            <ActionButton icon={Share2} label="Compartir" />
-            <ActionButton icon={Ban} label="Anular" tone="danger" />
-            <ActionButton icon={MoreHorizontal} label="Más" />
-          </CardContent>
-        </Card>
+        {reference && (
+          <DebtDetailActions
+            debt={debt}
+            order={order}
+            purchase={purchase}
+            customer={customer}
+            supplier={supplier}
+            employeeName={employee?.name}
+          />
+        )}
       </div>
 
       <PaymentModal

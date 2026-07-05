@@ -44,6 +44,7 @@ export default function EditarCuentaPage() {
     initialAccount.avatar_url,
   );
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const valid =
     fullName.trim().length > 0 &&
@@ -54,6 +55,7 @@ export default function EditarCuentaPage() {
     if (!valid || saving) return;
 
     setSaving(true);
+    setError(null);
     const trimmedName = fullName.trim();
     const trimmedUsername =
       username.trim() || slugifyUsername(trimmedName) || "usuario";
@@ -74,6 +76,7 @@ export default function EditarCuentaPage() {
     } else {
       const result = await saveProfile(profilePayload);
       if (result.error) {
+        setError(result.error);
         setSaving(false);
         return;
       }
@@ -169,6 +172,9 @@ export default function EditarCuentaPage() {
       </div>
 
       <div className="mx-auto max-w-mobile px-4 ">
+        {error && (
+          <p className="mb-3 text-center text-sm text-destructive">{error}</p>
+        )}
         <Button
           variant="success"
           fullWidth

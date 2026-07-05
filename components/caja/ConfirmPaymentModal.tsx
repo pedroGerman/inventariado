@@ -26,7 +26,9 @@ interface ConfirmPaymentModalProps {
   paymentMethod: PaymentMethod;
   flow?: PaymentFlow;
   customerName?: string | null;
-  onConfirm: (toPay: number, received: number) => void;
+  submitting?: boolean;
+  error?: string | null;
+  onConfirm: (toPay: number, received: number) => void | Promise<void>;
   onRequireCustomer?: () => void;
 }
 
@@ -38,6 +40,8 @@ export function ConfirmPaymentModal({
   paymentMethod,
   flow = "sale",
   customerName,
+  submitting = false,
+  error,
   onConfirm,
   onRequireCustomer,
 }: ConfirmPaymentModalProps) {
@@ -54,7 +58,7 @@ export function ConfirmPaymentModal({
     if (!open) return;
     setToPay(isPartialMode ? "" : String(total));
     setReceived(paymentType === "pay_all" ? String(total) : "");
-  }, [open, total, isPartialMode, paymentType]);
+  }, [open, total, isPartialMode, paymentType, paymentMethod]);
 
   const toPayNum = parseFloat(toPay) || 0;
   const receivedNum = parseFloat(received) || 0;
@@ -70,19 +74,22 @@ export function ConfirmPaymentModal({
         : undefined,
   );
   const createsDebt = saleCreatesDebt(amounts);
-  const needsCustomer = createsDebt && !customerName;
-  const canConfirm =
-    isPayLater ||
-    (isPartialMode ? toPayNum > 0 : toPayNum > 0 || receivedNum > 0);
+  const needsParty = !customerName;
+  const canSubmit =
+    !submitting &&
+    (isPayLater ||
+      (isPartialMode ? toPayNum > 0 : toPayNum > 0 || receivedNum > 0));
 
   function handleConfirm() {
-    if (needsCustomer) {
+    if (submitting) return;
+    if (needsParty) {
       onRequireCustomer?.();
       return;
     }
+    if (!canSubmit) return;
     const paidNow = isPartialMode ? toPayNum : toPayNum || total;
     const amountIn = isPartialMode ? toPayNum : receivedNum || paidNow;
-    onConfirm(paidNow, amountIn);
+    void onConfirm(paidNow, amountIn);
   }
 
   return (
@@ -174,22 +181,43 @@ export function ConfirmPaymentModal({
 
 
 
-        {needsCustomer && (
+        {needsParty && (
           <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-amber-900">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p className="text-sm">
               {isPurchase ? (
                 <>
-                  Agrega un proveedor para registrar el saldo en{" "}
-                  <span className="font-medium">Deudas</span>.
+                  Agrega un proveedor para finalizar la compra
+                  {createsDebt ? (
+                    <>
+                      {" "}
+                      y registrar el saldo en{" "}
+                      <span className="font-medium">Deudas</span>
+                    </>
+                  ) : null}
+                  .
                 </>
               ) : (
                 <>
-                  Agrega un cliente para registrar la deuda en{" "}
-                  <span className="font-medium">Deudas</span>.
+                  Agrega un cliente para finalizar la venta
+                  {createsDebt ? (
+                    <>
+                      {" "}
+                      y registrar la deuda en{" "}
+                      <span className="font-medium">Deudas</span>
+                    </>
+                  ) : null}
+                  .
                 </>
               )}
             </p>
+          </div>
+        )}
+
+        {error && (
+          <div className="flex items-start gap-2 rounded-xl bg-red-50 px-4 py-3 text-red-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="text-sm">{error}</p>
           </div>
         )}
 
@@ -203,13 +231,15 @@ export function ConfirmPaymentModal({
         <Button
           fullWidth
           onClick={handleConfirm}
-          disabled={!canConfirm && !isPayLater}
+          disabled={submitting || (!needsParty && !canSubmit)}
         >
-          {needsCustomer
-            ? isPurchase
-              ? "AGREGAR PROVEEDOR"
-              : "AGREGAR CLIENTE"
-            : "FINALIZAR"}
+          {submitting
+            ? "Finalizando…"
+            : needsParty
+              ? isPurchase
+                ? "AGREGAR PROVEEDOR"
+                : "AGREGAR CLIENTE"
+              : "FINALIZAR"}
         </Button>
       </div>
     </Modal>

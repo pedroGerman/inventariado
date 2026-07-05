@@ -245,14 +245,14 @@ export default function EstadisticasPage() {
                   label="Agotados"
                   value={String(businessStats.outOfStock)}
                   color="text-danger"
-                  href="/productos"
+                  href="/productos?stock=out"
                 />
                 <StatCard
                   icon={AlertTriangle}
                   label="Stock bajo"
                   value={String(businessStats.lowStock)}
                   color="text-warning"
-                  href="/productos"
+                  href="/productos?stock=low"
                 />
               </div>
             </div>

@@ -24,7 +24,7 @@ import { AccountProfileHeader } from "@/components/opciones/AccountProfileHeader
 const menuItems = [
   { href: "/compras", label: "Compras", icon: ShoppingBag },
   { href: "/productos", label: "Productos", icon: Package },
-  { href: "/productos", label: "Insumos", icon: Package },
+  { href: "/productos?tab=supply", label: "Insumos", icon: Package },
   { href: "/opciones/categorias", label: "Categorías", icon: Tags },
   { href: "/opciones/clientes", label: "Clientes/Proveedores", icon: Users },
   { href: "/deudas", label: "Deudas", icon: Wallet },

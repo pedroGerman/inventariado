@@ -6,7 +6,12 @@ import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { TextField, Textarea } from "@/components/ui/Input";
 import { PhoneField } from "@/components/ui/PhoneField";
-import { saveCustomer, saveSupplier, newEntityId, getActiveBusinessId } from "@/lib/mock/db";
+import {
+  saveCustomer,
+  saveSupplier,
+  newEntityId,
+  getActiveBusinessId,
+} from "@/lib/mock/db";
 import type { Customer, Supplier } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
 import { normalizePhoneForSave } from "@/lib/utils/phone";
@@ -16,6 +21,8 @@ interface CustomerFormProps {
   backHref: string;
   returnTo?: string;
   openDrawerOnReturn?: boolean;
+  customer?: Customer;
+  supplier?: Supplier;
 }
 
 export function CustomerForm({
@@ -23,65 +30,87 @@ export function CustomerForm({
   backHref,
   returnTo,
   openDrawerOnReturn = false,
+  customer,
+  supplier,
 }: CustomerFormProps) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [extra, setExtra] = useState("");
-  const [nit, setNit] = useState("");
-  const [showExtra, setShowExtra] = useState(false);
+  const isEdit = Boolean(customer || supplier);
+  const [name, setName] = useState(customer?.name ?? supplier?.name ?? "");
+  const [phone, setPhone] = useState(customer?.phone ?? supplier?.phone ?? "");
+  const [extra, setExtra] = useState(customer?.extra_info ?? "");
+  const [nit, setNit] = useState(supplier?.nit ?? "");
+  const [showExtra, setShowExtra] = useState(Boolean(customer?.extra_info));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const isCustomer = mode === "customer";
-  const title = isCustomer ? "Nuevo Cliente" : "Nuevo Proveedor";
+  const title = isCustomer
+    ? isEdit
+      ? "Editar Cliente"
+      : "Nuevo Cliente"
+    : isEdit
+      ? "Editar Proveedor"
+      : "Nuevo Proveedor";
 
   async function handleSave() {
-    if (!name.trim()) return;
+    if (!name.trim() || saving) return;
 
-    if (isCustomer) {
-      const customer: Customer = {
-        id: newEntityId(),
-        business_id: getActiveBusinessId(),
-        name: name.trim(),
-        phone: normalizePhoneForSave(phone),
-        extra_info: extra || null,
-        created_at: new Date().toISOString(),
-      };
-      await saveCustomer(customer);
+    setSaving(true);
+    setError(null);
 
-      if (returnTo) {
-        const params = new URLSearchParams();
-        if (openDrawerOnReturn) {
-          params.set("openCustomerDrawer", "1");
-          params.set("customerId", customer.id);
+    try {
+      if (isCustomer) {
+        const nextCustomer: Customer = {
+          id: customer?.id ?? newEntityId(),
+          business_id: customer?.business_id ?? getActiveBusinessId(),
+          name: name.trim(),
+          phone: normalizePhoneForSave(phone),
+          extra_info: extra || null,
+          created_at: customer?.created_at ?? new Date().toISOString(),
+        };
+        await saveCustomer(nextCustomer);
+
+        if (returnTo) {
+          const params = new URLSearchParams();
+          if (openDrawerOnReturn) {
+            params.set("openCustomerDrawer", "1");
+            params.set("customerId", nextCustomer.id);
+          }
+          const query = params.toString();
+          router.push(query ? `${returnTo}?${query}` : returnTo);
+          return;
         }
-        const query = params.toString();
-        router.push(query ? `${returnTo}?${query}` : returnTo);
-        return;
-      }
-    } else {
-      const supplier: Supplier = {
-        id: newEntityId(),
-        business_id: getActiveBusinessId(),
-        name: name.trim(),
-        phone: normalizePhoneForSave(phone),
-        nit: nit || null,
-        created_at: new Date().toISOString(),
-      };
-      await saveSupplier(supplier);
+      } else {
+        const nextSupplier: Supplier = {
+          id: supplier?.id ?? newEntityId(),
+          business_id: supplier?.business_id ?? getActiveBusinessId(),
+          name: name.trim(),
+          phone: normalizePhoneForSave(phone),
+          nit: nit || null,
+          created_at: supplier?.created_at ?? new Date().toISOString(),
+        };
+        await saveSupplier(nextSupplier);
 
-      if (returnTo) {
-        const params = new URLSearchParams();
-        if (openDrawerOnReturn) {
-          params.set("openSupplierDrawer", "1");
-          params.set("supplierId", supplier.id);
+        if (returnTo) {
+          const params = new URLSearchParams();
+          if (openDrawerOnReturn) {
+            params.set("openSupplierDrawer", "1");
+            params.set("supplierId", nextSupplier.id);
+          }
+          const query = params.toString();
+          router.push(query ? `${returnTo}?${query}` : returnTo);
+          return;
         }
-        const query = params.toString();
-        router.push(query ? `${returnTo}?${query}` : returnTo);
-        return;
       }
+
+      router.push(backHref);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "No se pudo guardar el contacto.",
+      );
+    } finally {
+      setSaving(false);
     }
-
-    router.push(backHref);
   }
 
   return (
@@ -89,12 +118,6 @@ export function CustomerForm({
       <Header title={title} showBack backHref={backHref} />
 
       <div className="flex flex-col gap-4 px-4 py-4 pb-28">
-        {/* {isCustomer && (
-          <Button variant="secondary" fullWidth disabled>
-            Buscar contacto telefónico
-          </Button>
-        )} */}
-
         <TextField
           label="Nombre *"
           value={name}
@@ -137,6 +160,10 @@ export function CustomerForm({
             )}
           </>
         )}
+
+        {error && (
+          <p className="text-sm text-destructive">{error}</p>
+        )}
       </div>
 
       <div
@@ -147,7 +174,8 @@ export function CustomerForm({
         <Button
           fullWidth
           variant="success"
-          disabled={!name.trim()}
+          disabled={!name.trim() || saving}
+          loading={saving}
           onClick={() => void handleSave()}
         >
           Guardar

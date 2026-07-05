@@ -8,7 +8,21 @@ import { TextField } from "@/components/ui/Input";
 import { SelectField, SelectItem } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
-import { savePayment, newEntityId } from "@/lib/mock/db";
+import {
+  getBusiness,
+  getCustomers,
+  getDebt,
+  getOrder,
+  getPurchase,
+  getSuppliers,
+  savePayment,
+  newEntityId,
+} from "@/lib/mock/db";
+import {
+  orderToReceiptDocument,
+  purchaseToReceiptDocument,
+} from "@/lib/utils/receiptDocument";
+import { downloadReceiptPdf } from "@/lib/utils/receiptPdf";
 
 import type { DebtKind } from "@/lib/types/database";
 
@@ -36,18 +50,67 @@ export function PaymentModal({
   const [printReceipt, setPrintReceipt] = useState(true);
   const [partialAmount, setPartialAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const payAmount = mode === "full" ? amount : parseFloat(partialAmount) || 0;
   const valid = payAmount > 0 && payAmount <= amount;
 
   useEffect(() => {
-    if (!open) setPartialAmount("");
+    if (!open) {
+      setPartialAmount("");
+      setError(null);
+    }
   }, [open]);
+
+  async function maybeDownloadReceipt() {
+    if (!printReceipt) return;
+
+    const debt = getDebt(debtId);
+    if (!debt) return;
+
+    const businessName = getBusiness().name;
+
+    if (debt.order_id) {
+      const order = getOrder(debt.order_id);
+      const customer = debt.customer_id
+        ? getCustomers().find((c) => c.id === debt.customer_id)
+        : undefined;
+
+      if (order) {
+        await downloadReceiptPdf(
+          orderToReceiptDocument(order, businessName, {
+            party: customer,
+            debt,
+            title: "COMPROBANTE DE PAGO",
+          }),
+        );
+      }
+      return;
+    }
+
+    if (debt.purchase_id) {
+      const purchase = getPurchase(debt.purchase_id);
+      const supplier = debt.supplier_id
+        ? getSuppliers().find((s) => s.id === debt.supplier_id)
+        : undefined;
+
+      if (purchase) {
+        await downloadReceiptPdf(
+          purchaseToReceiptDocument(purchase, businessName, {
+            party: supplier,
+            debt,
+            title: "COMPROBANTE DE PAGO",
+          }),
+        );
+      }
+    }
+  }
 
   async function handleAccept() {
     if (!valid || saving) return;
 
     setSaving(true);
+    setError(null);
     try {
       await savePayment({
         id: newEntityId(),
@@ -56,10 +119,13 @@ export function PaymentModal({
         method,
         created_at: new Date().toISOString(),
       });
+      await maybeDownloadReceipt();
       onSuccess();
       onClose();
     } catch (err) {
-      console.error("[PaymentModal]", err);
+      setError(
+        err instanceof Error ? err.message : "No se pudo registrar el pago.",
+      );
     } finally {
       setSaving(false);
     }
@@ -90,7 +156,7 @@ export function PaymentModal({
         )}
 
         <Toggle
-          label="Imprimir comprobante"
+          label="Descargar comprobante"
           checked={printReceipt}
           onChange={setPrintReceipt}
         />
@@ -127,6 +193,12 @@ export function PaymentModal({
                 : undefined
             }
           />
+        )}
+
+        {error && (
+          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-destructive">
+            {error}
+          </p>
         )}
 
         <div className="flex gap-3">

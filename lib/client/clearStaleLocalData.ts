@@ -14,6 +14,7 @@ export function clearStaleLocalData(): void {
 
   localStorage.removeItem("pos-mock-db");
   localStorage.removeItem("pos-app-db");
+  localStorage.removeItem("pos-cart");
 
   const persisted = useEmployeeStore.getState().current;
   if (!persisted || isDemoEmployeeId(persisted.id)) {

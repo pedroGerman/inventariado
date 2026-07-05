@@ -1,21 +1,34 @@
 "use client";
 
+import { useState } from "react";
 import { Minus, Package, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import type { CartItem } from "@/lib/store/cart";
 
 interface CartItemRowProps {
   item: CartItem;
+  maxQuantity?: number | null;
   onUpdateQty: (id: string, qty: number) => void;
   onRemove: (id: string) => void;
 }
 
-export function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
+export function CartItemRow({
+  item,
+  maxQuantity = null,
+  onUpdateQty,
+  onRemove,
+}: CartItemRowProps) {
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const atMax =
+    maxQuantity != null && item.quantity >= maxQuantity && maxQuantity > 0;
+
   return (
+    <>
     <div className="py-6 pr-0.5 flex w-full items-center gap-3 text-left">
 
-      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-2 shadow-segmented-track">
+      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full p-1  shadow-segmented-track">
         {item.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -45,7 +58,7 @@ export function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
       <div className="text-right flex flex-col justify-between h-full gap-7 items-end">
         <button
           type="button"
-          onClick={() => onRemove(item.id)}
+          onClick={() => setRemoveOpen(true)}
           className="rounded-lg text-destructive transition-colors hover:bg-red-50"
           aria-label={`Eliminar ${item.name}`}
         >
@@ -70,7 +83,11 @@ export function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
             variant="success"
             size="icon"
             className="size-6 rounded-full"
-            onClick={() => onUpdateQty(item.id, item.quantity + 1)}
+            disabled={atMax}
+            onClick={() => {
+              if (atMax) return;
+              onUpdateQty(item.id, item.quantity + 1);
+            }}
             aria-label="Aumentar cantidad"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -79,5 +96,25 @@ export function CartItemRow({ item, onUpdateQty, onRemove }: CartItemRowProps) {
       </div>
       {/* <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" /> */}
     </div>
+
+    <ConfirmDeleteModal
+      open={removeOpen}
+      onClose={() => setRemoveOpen(false)}
+      onConfirm={() => {
+        onRemove(item.id);
+        setRemoveOpen(false);
+      }}
+      title="Quitar producto"
+      confirmLabel="Sí, quitar del carrito"
+      loadingLabel="Quitando…"
+      description={
+        <>
+          ¿Quitar{" "}
+          <span className="font-semibold text-card-foreground">{item.name}</span>{" "}
+          del carrito?
+        </>
+      }
+    />
+    </>
   );
 }

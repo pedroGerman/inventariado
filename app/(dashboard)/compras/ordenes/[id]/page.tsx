@@ -2,17 +2,19 @@
 
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Ban, MoreHorizontal, Printer, RotateCcw, Share2, Wallet } from "lucide-react";
+import { FileText, Play, Printer, Wallet } from "lucide-react";
+import { PurchaseOrderDetailActions, usePurchaseOrderDownloadPdf } from "@/components/ordenes/PurchaseOrderDetailActions";
 import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
-import { Card, CardContent } from "@/components/ui/Card";
 import { CheckoutSummary } from "@/components/caja/CheckoutSummary";
 import { getPurchase, getSuppliers, getDebtByPurchaseId } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useEmployeeStore } from "@/lib/store/employee";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
+import { getPendingKindLabel, isQuotePurchase } from "@/lib/utils/pendingOrder";
+import { useResumePurchaseOrder } from "@/lib/hooks/useResumePending";
 import { cn } from "@/lib/utils/cn";
 import { getPaymentMethodLabel } from "@/lib/utils/paymentMethod";
 
@@ -56,41 +58,28 @@ function DetailRow({
   );
 }
 
-function ActionButton({
-  icon: Icon,
-  label,
-  tone = "default",
-  onClick,
-}: {
-  icon: React.ElementType;
-  label: string;
-  tone?: "default" | "danger";
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-1.5 rounded-lg px-2 py-2.5 text-xs font-medium transition-colors",
-        tone === "danger"
-          ? "text-destructive hover:bg-red-50"
-          : "text-muted-foreground hover:bg-surface-2 hover:text-foreground",
-      )}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </button>
-  );
-}
-
 export default function CompraDetallePage() {
   useMockDBRefresh();
   const { id } = useParams<{ id: string }>();
+  const { resume } = useResumePurchaseOrder();
   const purchase = getPurchase(id);
   const suppliers = getSuppliers();
   const currentEmployee = useEmployeeStore((s) => s.current);
   const debt = purchase ? getDebtByPurchaseId(purchase.id) : undefined;
+  const supplier = purchase
+    ? suppliers.find((s) => s.id === purchase.supplier_id)
+    : undefined;
+  const employee = purchase
+    ? currentEmployee?.id === purchase.employee_id
+      ? currentEmployee
+      : null
+    : null;
+  const { downloadPdf, downloading: downloadingPdf } = usePurchaseOrderDownloadPdf({
+    purchase,
+    supplier,
+    employeeName: employee?.name,
+    debt,
+  });
 
   if (!purchase) {
     return (
@@ -100,10 +89,6 @@ export default function CompraDetallePage() {
       </>
     );
   }
-
-  const supplier = suppliers.find((s) => s.id === purchase.supplier_id);
-  const employee =
-    currentEmployee?.id === purchase.employee_id ? currentEmployee : null;
 
   const statusVariant =
     debt && debt.remaining > 0
@@ -115,10 +100,15 @@ export default function CompraDetallePage() {
           : "warning";
 
   const statusLabel =
-    debt && debt.remaining > 0
-      ? "Por pagar"
-      : (STATUS_LABELS[purchase.status] ?? purchase.status);
+    purchase.status === "pending"
+      ? getPendingKindLabel(purchase, "purchase")
+      : debt && debt.remaining > 0
+        ? "Por pagar"
+        : (STATUS_LABELS[purchase.status] ?? purchase.status);
   const paymentLabel = getPaymentMethodLabel(purchase.payment_method);
+  const isPending = purchase.status === "pending";
+  const isQuote = isQuotePurchase(purchase);
+  const isCancelled = purchase.status === "cancelled";
 
   return (
     <>
@@ -127,15 +117,19 @@ export default function CompraDetallePage() {
         showBack
         backHref="/ordenes?tab=purchase"
         right={
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="rounded-full"
-            aria-label="Imprimir recibo"
-          >
-            <Printer className="h-4 w-4" />
-          </Button>
+          !isCancelled ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="rounded-full"
+              aria-label="Descargar PDF"
+              disabled={downloadingPdf}
+              onClick={() => void downloadPdf()}
+            >
+              <Printer className="h-4 w-4" />
+            </Button>
+          ) : undefined
         }
       />
 
@@ -145,16 +139,25 @@ export default function CompraDetallePage() {
             label="Fecha"
             value={`${purchase.date} ${formatTime(purchase.created_at)}`}
           />
-          <DetailRow label="Método de pago" value={paymentLabel} />
-          <DetailRow
-            label="Modo de pago"
-            value={PAYMENT_TYPE_LABELS[purchase.payment_type] ?? purchase.payment_type}
-          />
+          {!isPending && (
+            <>
+              <DetailRow label="Método de pago" value={paymentLabel} />
+              <DetailRow
+                label="Modo de pago"
+                value={PAYMENT_TYPE_LABELS[purchase.payment_type] ?? purchase.payment_type}
+              />
+            </>
+          )}
           <DetailRow label="Estado">
             <Badge variant={statusVariant}>{statusLabel}</Badge>
           </DetailRow>
           {employee && <DetailRow label="Cajero" value={employee.name} />}
-          {supplier && <DetailRow label="Proveedor" value={supplier.name} />}
+          {supplier && (
+            <DetailRow
+              label={isPending && isQuotePurchase(purchase) ? "Cotización con" : "Proveedor"}
+              value={supplier.name}
+            />
+          )}
         </div>
 
         <div className="flex flex-col gap-2 px-1">
@@ -226,14 +229,31 @@ export default function CompraDetallePage() {
           )}
         </div>
 
-        <Card className="gap-0 !py-0">
-          <CardContent className="grid grid-cols-4 !justify-between gap-1 !px-2 !py-1">
-            <ActionButton icon={Share2} label="Compartir" />
-            <ActionButton icon={RotateCcw} label="Devolución" />
-            <ActionButton icon={Ban} label="Anular" tone="danger" />
-            <ActionButton icon={MoreHorizontal} label="Más" />
-          </CardContent>
-        </Card>
+        {isPending && isQuote && (
+          <Button asChild fullWidth variant="default" iconLeft={<FileText className="h-4 w-4" />}>
+            <Link href={`/compras/ordenes/${purchase.id}/cotizacion`}>
+              Ver cotización
+            </Link>
+          </Button>
+        )}
+
+        {isPending && (
+          <Button
+            fullWidth
+            variant="success"
+            iconLeft={<Play className="h-4 w-4" />}
+            onClick={() => resume(purchase)}
+          >
+            Retomar compra
+          </Button>
+        )}
+
+        <PurchaseOrderDetailActions
+          purchase={purchase}
+          supplier={supplier}
+          employeeName={employee?.name}
+          debt={debt}
+        />
       </div>
     </>
   );

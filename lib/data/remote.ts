@@ -265,6 +265,71 @@ export async function remoteSaveOrder(order: Order): Promise<void> {
   }
 }
 
+export async function remoteUpdateOrder(order: Order): Promise<void> {
+  const client = supabase();
+
+  const { error: deleteError } = await client
+    .from("order_items")
+    .delete()
+    .eq("order_id", order.id);
+
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (order.items?.length) {
+    const { error: itemsError } = await client.from("order_items").insert(
+      order.items.map((item) => ({
+        id: item.id,
+        order_id: order.id,
+        product_id: item.product_id,
+        name: item.name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+      })),
+    );
+    if (itemsError) throw new Error(itemsError.message);
+  }
+
+  const { error: orderError } = await client
+    .from("orders")
+    .update({
+      customer_id: order.customer_id,
+      order_number: order.order_number,
+      status: order.status,
+      payment_method: order.payment_method,
+      payment_type: order.payment_type,
+      subtotal: order.subtotal,
+      tax: order.tax,
+      service: order.service,
+      discount: order.discount,
+      total: order.total,
+      cash_received: order.cash_received ?? null,
+      change_amount: order.change ?? null,
+      date: order.date,
+    })
+    .eq("id", order.id);
+
+  if (orderError) throw new Error(orderError.message);
+}
+
+export async function remoteDeleteOrder(orderId: string): Promise<void> {
+  const client = supabase();
+
+  const { error: itemsError } = await client
+    .from("order_items")
+    .delete()
+    .eq("order_id", orderId);
+
+  if (itemsError) throw new Error(itemsError.message);
+
+  const { error: orderError } = await client
+    .from("orders")
+    .delete()
+    .eq("id", orderId);
+
+  if (orderError) throw new Error(orderError.message);
+}
+
 export async function remoteSavePurchase(purchase: Purchase): Promise<void> {
   const client = supabase();
 
@@ -304,6 +369,70 @@ export async function remoteSavePurchase(purchase: Purchase): Promise<void> {
     );
     if (itemsError) throw new Error(itemsError.message);
   }
+}
+
+export async function remoteUpdatePurchase(purchase: Purchase): Promise<void> {
+  const client = supabase();
+
+  const { error: deleteError } = await client
+    .from("purchase_items")
+    .delete()
+    .eq("purchase_id", purchase.id);
+
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (purchase.items?.length) {
+    const { error: itemsError } = await client.from("purchase_items").insert(
+      purchase.items.map((item) => ({
+        id: item.id,
+        purchase_id: purchase.id,
+        product_id: item.product_id,
+        name: item.name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price,
+      })),
+    );
+    if (itemsError) throw new Error(itemsError.message);
+  }
+
+  const { error: purchaseError } = await client
+    .from("purchases")
+    .update({
+      supplier_id: purchase.supplier_id,
+      purchase_number: purchase.purchase_number,
+      status: purchase.status,
+      payment_method: purchase.payment_method,
+      payment_type: purchase.payment_type,
+      subtotal: purchase.subtotal,
+      tax: purchase.tax,
+      discount: purchase.discount,
+      total: purchase.total,
+      cash_paid: purchase.cash_paid ?? null,
+      change: purchase.change ?? null,
+      date: purchase.date,
+    })
+    .eq("id", purchase.id);
+
+  if (purchaseError) throw new Error(purchaseError.message);
+}
+
+export async function remoteDeletePurchase(purchaseId: string): Promise<void> {
+  const client = supabase();
+
+  const { error: itemsError } = await client
+    .from("purchase_items")
+    .delete()
+    .eq("purchase_id", purchaseId);
+
+  if (itemsError) throw new Error(itemsError.message);
+
+  const { error: purchaseError } = await client
+    .from("purchases")
+    .delete()
+    .eq("id", purchaseId);
+
+  if (purchaseError) throw new Error(purchaseError.message);
 }
 
 export async function remoteSaveDebt(debt: Debt): Promise<void> {
