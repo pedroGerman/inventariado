@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { CategoryFormFields } from "@/components/categorias/CategoryFormFields";
 import {
   getCategories,
@@ -38,6 +39,9 @@ export default function CategoriaFormPage() {
   const [imageUploading, setImageUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (existing) {
@@ -95,6 +99,26 @@ export default function CategoriaFormPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!existing) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await deleteCategory(existing.id);
+      setDeleteOpen(false);
+      router.push("/opciones/categorias");
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "No se pudo eliminar la categoría.",
+      );
+      setDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <>
       <Header
@@ -128,17 +152,35 @@ export default function CategoriaFormPage() {
             type="button"
             variant="destructive"
             fullWidth
-            onClick={() => {
-              void deleteCategory(existing.id).then(() =>
-                router.push("/opciones/categorias"),
-              );
-            }}
+            onClick={() => setDeleteOpen(true)}
             iconLeft={<Trash2 className="h-4 w-4" />}
           >
             Eliminar categoría
           </Button>
         )}
+
+        {deleteError && (
+          <p className="text-center text-xs text-destructive">{deleteError}</p>
+        )}
       </div>
+
+      {!isNew && existing && (
+        <ConfirmDeleteModal
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          onConfirm={handleDelete}
+          loading={deleting}
+          title="Eliminar categoría"
+          confirmLabel="Sí, eliminar categoría"
+          description={
+            <>
+              ¿Eliminar la categoría{" "}
+              <span className="font-semibold text-card-foreground">{existing.name}</span>?
+              Los productos asociados quedarán sin categoría y no podrás recuperarla.
+            </>
+          }
+        />
+      )}
 
       <div className="fixed bottom-20 left-0 right-0 z-10 mx-auto max-w-mobile border-t border-border/50 bg-surface-0 px-4 py-4 safe-bottom">
         <div className="flex gap-3">

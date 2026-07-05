@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ClipboardList, Settings } from "lucide-react";
+import { Search, ClipboardList, Settings } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { CategoryTabs } from "@/components/ventas/CategoryTabs";
 import { ProductCard } from "@/components/ventas/ProductCard";
@@ -10,7 +10,8 @@ import { QuickSaleModal } from "@/components/ventas/QuickSaleModal";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { getCategories, getProducts, uid } from "@/lib/mock/db";
+import { TextField } from "@/components/ui/Input";
+import { getCategories, getProducts, uid, getPendingPurchases } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useCartStore } from "@/lib/store/cart";
 import { FloatingCartButton } from "@/components/ventas/FloatingCartButton";
@@ -19,13 +20,20 @@ export default function ComprasPage() {
   useMockDBRefresh();
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [quickOpen, setQuickOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const addItem = useCartStore((s) => s.addItem);
 
   const categories = getCategories("compras");
+  const pendingCount = getPendingPurchases().length;
   let products = getProducts();
 
   if (selectedCategory) {
     products = products.filter((p) => p.category_id === selectedCategory);
+  }
+  if (search) {
+    products = products.filter((p) =>
+      p.name.toLowerCase().includes(search.toLowerCase()),
+    );
   }
 
   function handleAddProduct(product: (typeof products)[0]) {
@@ -48,36 +56,48 @@ export default function ComprasPage() {
     <>
       <Header
         title="Compras"
+        onRefresh={() => window.location.reload()}
         right={
-          <div className="flex gap-1">
-            <Button
-              asChild
-              type="button"
-              variant="outline"
-              size="icon"
-              className="rounded-full"
-              aria-label="Ajustes"
-            >
-              <Link href="/opciones">
-                <Settings className="h-4 w-4" />
-              </Link>
-            </Button>
-       
-          </div>
+          <Button
+            asChild
+            type="button"
+            variant="outline"
+            size="icon"
+            className="rounded-full"
+            aria-label="Opciones"
+          >
+            <Link href="/opciones">
+              <Settings className="h-4 w-4" />
+            </Link>
+          </Button>
         }
       />
 
-      <div className="flex items-center justify-between gap-3 px-3 py-3">
-        <Badge variant="danger">Modo compra</Badge>
-        <Button
-          asChild
-          variant="secondary"
-          size="xs"
-          className="rounded-full"
-          iconLeft={<ClipboardList className="h-3.5 w-3.5" />}
-        >
-          <Link href="/ordenes?tab=purchase">Órdenes</Link>
-        </Button>
+      <div className="px-3 py-3 flex flex-col gap-3">
+        <TextField
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar producto..."
+          leftIcon={<Search className="h-4 w-4" />}
+        />
+
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <Badge variant="danger" size="xs">Modo compra</Badge>
+          <Link href="/ordenes?tab=purchase&pending=1">
+            <Badge variant="warning" size="xs">
+              Pendientes{pendingCount > 0 ? ` (${pendingCount})` : ""}
+            </Badge>
+          </Link>
+          <Button
+            asChild
+            variant="secondary"
+            size="xs"
+            className="ml-auto rounded-full"
+            iconLeft={<ClipboardList className="h-3.5 w-3.5" />}
+          >
+            <Link href="/ordenes?tab=purchase">Órdenes</Link>
+          </Button>
+        </div>
       </div>
 
       <CategoryTabs
@@ -86,7 +106,7 @@ export default function ComprasPage() {
         onSelect={setSelectedCategory}
       />
 
-      <div className="grid grid-cols-3 gap-2.5 px-3 py-3 pb-8">
+      <div className="grid grid-cols-3 gap-2 px-3 py-3">
         <ProductCard
           quickSale
           quickLabel="Compra Rápida"

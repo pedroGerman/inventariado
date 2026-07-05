@@ -30,6 +30,10 @@ import {
   remoteSaveOrder,
   remoteSavePayment,
   remoteSavePurchase,
+  remoteDeleteOrder,
+  remoteDeletePurchase,
+  remoteUpdateOrder,
+  remoteUpdatePurchase,
   remoteUpsertCategory,
   remoteUpsertCustomer,
   remoteUpsertProduct,
@@ -157,6 +161,10 @@ export function getOrders(): Order[] {
   );
 }
 
+export function getPendingOrders(): Order[] {
+  return getOrders().filter((o) => o.status === "pending");
+}
+
 export function getOrder(id: string): Order | undefined {
   return getCache().orders.find((o) => o.id === id);
 }
@@ -165,6 +173,10 @@ export function getPurchases(): Purchase[] {
   return [...getCache().purchases].sort(
     (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
+}
+
+export function getPendingPurchases(): Purchase[] {
+  return getPurchases().filter((p) => p.status === "pending");
 }
 
 export function getPurchase(id: string): Purchase | undefined {
@@ -302,6 +314,34 @@ export async function saveOrder(order: Order): Promise<void> {
   notifyUpdate();
 }
 
+export async function updateOrder(order: Order): Promise<void> {
+  const db = getCache();
+  const idx = db.orders.findIndex((o) => o.id === order.id);
+  if (idx >= 0) db.orders[idx] = order;
+  else db.orders.unshift(order);
+
+  if (isMockMode()) {
+    persistMock();
+    return;
+  }
+
+  await remoteUpdateOrder(order);
+  notifyUpdate();
+}
+
+export async function deleteOrder(id: string): Promise<void> {
+  const db = getCache();
+  db.orders = db.orders.filter((o) => o.id !== id);
+
+  if (isMockMode()) {
+    persistMock();
+    return;
+  }
+
+  await remoteDeleteOrder(id);
+  notifyUpdate();
+}
+
 export async function savePurchase(purchase: Purchase): Promise<void> {
   const db = getCache();
   db.purchases.unshift(purchase);
@@ -312,6 +352,34 @@ export async function savePurchase(purchase: Purchase): Promise<void> {
   }
 
   await remoteSavePurchase(purchase);
+  notifyUpdate();
+}
+
+export async function updatePurchase(purchase: Purchase): Promise<void> {
+  const db = getCache();
+  const idx = db.purchases.findIndex((p) => p.id === purchase.id);
+  if (idx >= 0) db.purchases[idx] = purchase;
+  else db.purchases.unshift(purchase);
+
+  if (isMockMode()) {
+    persistMock();
+    return;
+  }
+
+  await remoteUpdatePurchase(purchase);
+  notifyUpdate();
+}
+
+export async function deletePurchase(id: string): Promise<void> {
+  const db = getCache();
+  db.purchases = db.purchases.filter((p) => p.id !== id);
+
+  if (isMockMode()) {
+    persistMock();
+    return;
+  }
+
+  await remoteDeletePurchase(id);
   notifyUpdate();
 }
 

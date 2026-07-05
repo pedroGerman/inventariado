@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, Settings, QrCode, ClipboardList } from "lucide-react";
+import { Search, ClipboardList, Settings } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { Header } from "@/components/layout/Header";
 import { CategoryTabs } from "@/components/ventas/CategoryTabs";
 import { ProductCard } from "@/components/ventas/ProductCard";
 import { QuickSaleModal } from "@/components/ventas/QuickSaleModal";
-import { getCategories, getProducts } from "@/lib/mock/db";
+import { getCategories, getProducts, getPendingOrders } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useCartStore } from "@/lib/store/cart";
 import { uid } from "@/lib/mock/db";
@@ -22,8 +23,10 @@ export default function VentasPage() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [search, setSearch] = useState("");
   const addItem = useCartStore((s) => s.addItem);
+  const saleItems = useCartStore((s) => s.saleItems);
 
   const categories = getCategories("ventas");
+  const pendingCount = getPendingOrders().length;
   let products = getProducts().filter((p) => p.type === "product");
 
   if (selectedCategory) {
@@ -37,6 +40,10 @@ export default function VentasPage() {
 
   function handleAddProduct(product: (typeof products)[0]) {
     if (product.stock <= 0) return;
+    const inCart = saleItems.find(
+      (item) => item.product_id === product.id && item.type === "product",
+    );
+    if ((inCart?.quantity ?? 0) >= product.stock) return;
     addItem(
       {
         id: uid("ci"),
@@ -58,10 +65,18 @@ export default function VentasPage() {
         title="Ventas"
         onRefresh={() => window.location.reload()}
         right={
-          <div className="flex gap-1">
-            <button className="rounded-full p-2 text-slate-500"><Settings className="h-4 w-4" /></button>
-            <button className="rounded-full p-2 text-slate-500"><QrCode className="h-4 w-4" /></button>
-          </div>
+          <Button
+            asChild
+            type="button"
+            variant="outline"
+            size="icon"
+            className="rounded-full"
+            aria-label="Opciones"
+          >
+            <Link href="/opciones">
+              <Settings className="h-4 w-4" />
+            </Link>
+          </Button>
         }
       />
 
@@ -74,16 +89,20 @@ export default function VentasPage() {
         />
 
         <div className="mb-3 flex flex-wrap items-center gap-2">
-          <Badge variant="primary">Caja abierta</Badge>
-          <Badge variant="neutral">Cliente</Badge>
-          <Badge variant="warning">Pendientes</Badge>
-          <Link
-            href="/ordenes"
-            className="ml-auto flex items-center gap-1 rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-600 shadow-sm"
-          >
-            <ClipboardList className="h-3 w-3" />
-            Órdenes
+          <Link href="/ordenes?pending=1">
+            <Badge variant="warning" size="xs">
+              Pendientes{pendingCount > 0 ? ` (${pendingCount})` : ""}
+            </Badge>
           </Link>
+          <Button
+            asChild
+            variant="secondary"
+            size="xs"
+            className="ml-auto rounded-full"
+            iconLeft={<ClipboardList className="h-3.5 w-3.5" />}
+          >
+            <Link href="/ordenes">Órdenes</Link>
+          </Button>
         </div>
       </div>
 

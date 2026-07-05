@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { ChevronRight, Package, Plus, Search } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
@@ -13,12 +14,40 @@ import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { cn } from "@/lib/utils/cn";
 
 type StockFilter = "all" | "low" | "out";
+type ProductTab = "product" | "supply";
+
+function parseTab(value: string | null): ProductTab {
+  return value === "supply" ? "supply" : "product";
+}
+
+function parseStockFilter(value: string | null): StockFilter {
+  if (value === "low" || value === "out") return value;
+  return "all";
+}
 
 export default function ProductosPage() {
+  return (
+    <Suspense fallback={null}>
+      <ProductosPageContent />
+    </Suspense>
+  );
+}
+
+function ProductosPageContent() {
   useMockDBRefresh();
-  const [tab, setTab] = useState<"product" | "supply">("product");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<ProductTab>(() =>
+    parseTab(searchParams.get("tab")),
+  );
   const [search, setSearch] = useState("");
-  const [stockFilter, setStockFilter] = useState<StockFilter>("all");
+  const [stockFilter, setStockFilter] = useState<StockFilter>(() =>
+    parseStockFilter(searchParams.get("stock")),
+  );
+
+  useEffect(() => {
+    setTab(parseTab(searchParams.get("tab")));
+    setStockFilter(parseStockFilter(searchParams.get("stock")));
+  }, [searchParams]);
 
   const products = getProducts().filter((p) => p.type === tab);
 
@@ -96,23 +125,14 @@ export default function ProductosPage() {
           ))}
         </div>
 
-        {/* {outOfStock > 0 && stockFilter !== "out" && (
-          <Card className="gap-0 border-0 bg-orange-50/80 py-0 shadow-none">
-            <CardContent className="px-4 py-2.5 text-sm text-warning">
-              {outOfStock} producto{outOfStock === 1 ? "" : "s"} agotado
-              {outOfStock === 1 ? "" : "s"} en esta lista
-            </CardContent>
-          </Card>
-        )} */}
-
         {filtered.length === 0 ? (
-          <div className="h-[calc(100vh-350px)] gap-2 flex justify-center items-center ">
+          <div className="flex h-[calc(100vh-350px)] items-center justify-center gap-2">
             <p className="text-sm text-muted-foreground">
               No hay productos que coincidan
             </p>
           </div>
         ) : (
-          <div className="divide-y divide-slate-200 flex flex-col">
+          <div className="flex flex-col divide-y divide-slate-200">
             {filtered.map((p) => {
               return (
                 <div key={p.id} className="gap-0 py-5">
@@ -133,30 +153,16 @@ export default function ProductosPage() {
                       )}
                     </div>
 
-                    <div className="min-w-0 flex-1 flex flex-col">
-                      {/* <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <Badge variant={p.active ? "primary" : "neutral"}>
-                          {p.active ? "Activo" : "Inactivo"}
-                        </Badge>
-                        {p.stock === 0 && (
-                          <Badge variant="danger">Agotado</Badge>
-                        )}
-                      </div> */}
+                    <div className="flex min-w-0 flex-1 flex-col">
                       <p className="truncate text-sm text-card-foreground">
                         {p.name}
                       </p>
                       <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs text-muted-foreground">
-                        <span className="font-bold text-xs tracking-normal text-neutral-600 tabular-nums">
+                        <span className="text-xs font-bold tracking-normal text-neutral-600 tabular-nums">
                           {formatCurrency(p.sale_price)}
                         </span>
                         <span>·</span>
                         <span className="text-xs">{p.stock} en stock</span>
-                        {/* {category && (
-                          <>
-                            <span>·</span>
-                            <span>{category.name}</span>
-                          </>
-                        )} */}
                       </div>
                     </div>
 

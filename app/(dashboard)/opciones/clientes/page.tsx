@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import Link from "next/link";
+import { Plus, ChevronRight } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
@@ -40,14 +41,19 @@ function SummaryMetric({
 function ContactRow({
   name,
   phone,
+  href,
   tone = "success",
 }: {
   name: string;
   phone?: string | null;
+  href: string;
   tone?: "success" | "danger";
 }) {
   return (
-    <div className="flex items-center gap-3 py-3.5">
+    <Link
+      href={href}
+      className="flex items-center gap-3 py-3.5 transition-colors hover:bg-surface-2/60"
+    >
       <div
         className={cn(
           "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
@@ -70,21 +76,8 @@ function ContactRow({
           <p className="text-xs text-muted-foreground">Sin teléfono</p>
         )}
       </div>
-      {/* {showWhatsApp && phone ? (
-        <a
-          href={`https://wa.me/1${phone}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            ffElevatedIconShellClassName,
-            "size-9 rounded-full text-[var(--button-success)]",
-          )}
-          aria-label={`WhatsApp ${name}`}
-        >
-          <MessageCircle className="h-4 w-4" />
-        </a>
-      ) : null} */}
-    </div>
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </Link>
   );
 }
 
@@ -165,6 +158,11 @@ export default function ClientesPage() {
                       key={item.id}
                       name={item.name}
                       phone={item.phone}
+                      href={
+                        isCustomers
+                          ? `/opciones/clientes/${item.id}`
+                          : `/opciones/clientes/proveedor/${item.id}`
+                      }
                       tone={isCustomers ? "success" : "danger"}
                     />
                   ))}

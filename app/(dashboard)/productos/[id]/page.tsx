@@ -10,6 +10,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { SelectField, SelectItem } from "@/components/ui/Select";
 import { ImagePickerSection } from "@/components/ui/ImagePickerSection";
 import { QuickCategoryDrawer } from "@/components/categorias/QuickCategoryDrawer";
+import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import {
   getProducts,
   getCategories,
@@ -58,6 +59,9 @@ export default function ProductoFormPage() {
   const [imageError, setImageError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const activeCategories = getCategories();
   const categories = (() => {
@@ -151,9 +155,24 @@ export default function ProductoFormPage() {
     }
   }
 
-  function handleDelete() {
+  async function handleDelete() {
     if (!existing) return;
-    void deleteProduct(existing.id).then(() => router.push("/productos"));
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      await deleteProduct(existing.id);
+      setDeleteOpen(false);
+      router.push("/productos");
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error ? err.message : "No se pudo eliminar el producto.",
+      );
+      setDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
   }
 
   function handleCategoryCreated(category: Category) {
@@ -289,13 +308,35 @@ export default function ProductoFormPage() {
             type="button"
             variant="destructive"
             fullWidth
-            onClick={handleDelete}
+            onClick={() => setDeleteOpen(true)}
             iconLeft={<Trash2 className="h-4 w-4" />}
           >
             Eliminar producto
           </Button>
         )}
       </div>
+
+      {!isNew && existing && (
+        <ConfirmDeleteModal
+          open={deleteOpen}
+          onClose={() => setDeleteOpen(false)}
+          onConfirm={handleDelete}
+          loading={deleting}
+          title="Eliminar producto"
+          confirmLabel="Sí, eliminar producto"
+          description={
+            <>
+              ¿Eliminar{" "}
+              <span className="font-semibold text-card-foreground">{existing.name}</span>?
+              Se quitará del inventario y no podrás recuperarlo.
+            </>
+          }
+        />
+      )}
+
+      {deleteError && (
+        <p className="px-4 text-center text-xs text-destructive">{deleteError}</p>
+      )}
 
       <div className="mx-auto max-w-mobile px-4">
         <div className="flex gap-3">
