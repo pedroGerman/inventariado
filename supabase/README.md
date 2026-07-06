@@ -17,8 +17,13 @@ npx supabase db push
 ## Después de migrar
 
 1. **Authentication → URL Configuration**
-   - Site URL: `http://localhost:3000`
-   - Redirect URLs: `http://localhost:3000/**`
+   - **Local:** Site URL `http://localhost:3000`, Redirect URLs `http://localhost:3000/**`
+   - **Producción (Vercel):** Site URL `https://inventariado-delta.vercel.app`, Redirect URLs:
+     - `https://inventariado-delta.vercel.app/**`
+     - `http://localhost:3000/**` (opcional, para desarrollo)
+
+   El callback de confirmación de correo apunta a `/auth/callback` (p. ej.
+   `https://inventariado-delta.vercel.app/auth/callback`).
 
 2. Crea un usuario en **Authentication → Users**
 

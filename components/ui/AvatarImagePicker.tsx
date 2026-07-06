@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Camera, Loader2 } from "lucide-react";
+import { useRef } from "react";
+import { Camera, Loader2, X } from "lucide-react";
 import {
   clearPlatformImage,
   IMAGE_ACCEPT,
@@ -16,6 +16,18 @@ interface AvatarImagePickerProps {
   fallbackLabel: string;
   className?: string;
   disabled?: boolean;
+  uploading?: boolean;
+  error?: string | null;
+  /** When true, only shows a local preview until the parent uploads on save. */
+  deferUpload?: boolean;
+  pendingFile?: File | null;
+  onPendingFileChange?: (file: File | null) => void;
+}
+
+function revokeLocalPreview(url: string | null) {
+  if (url?.startsWith("blob:")) {
+    URL.revokeObjectURL(url);
+  }
 }
 
 export function AvatarImagePicker({
@@ -25,18 +37,27 @@ export function AvatarImagePicker({
   fallbackLabel,
   className,
   disabled = false,
+  uploading = false,
+  error,
+  deferUpload = false,
+  pendingFile,
+  onPendingFileChange,
 }: AvatarImagePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const showPendingHint = deferUpload && pendingFile && !uploading;
 
   async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
 
-    setError(null);
-    setUploading(true);
+    if (deferUpload) {
+      revokeLocalPreview(imageUrl);
+      onPendingFileChange?.(file);
+      onChange(URL.createObjectURL(file));
+      return;
+    }
+
     try {
       const { url } = await uploadPlatformImage({
         kind: "avatar",
@@ -46,11 +67,25 @@ export function AvatarImagePicker({
       });
       onChange(url);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "No se pudo subir la imagen.",
-      );
-    } finally {
-      setUploading(false);
+      console.error("[AvatarImagePicker]", err);
+    }
+  }
+
+  async function handleRemove() {
+    if (deferUpload) {
+      revokeLocalPreview(imageUrl);
+      onPendingFileChange?.(null);
+      onChange(null);
+      return;
+    }
+
+    try {
+      if (imageUrl && !imageUrl.startsWith("blob:") && !imageUrl.startsWith("data:")) {
+        await clearPlatformImage(imageUrl);
+      }
+      onChange(null);
+    } catch (err) {
+      console.error("[AvatarImagePicker]", err);
     }
   }
 
@@ -76,6 +111,17 @@ export function AvatarImagePicker({
         >
           <Camera className="size-4" />
         </button>
+        {imageUrl && !uploading ? (
+          <button
+            type="button"
+            aria-label="Quitar foto de perfil"
+            disabled={disabled}
+            onClick={() => void handleRemove()}
+            className="absolute -right-1 top-0 flex size-7 items-center justify-center rounded-full bg-surface-0 text-muted-foreground shadow-card-edge hover:text-foreground"
+          >
+            <X className="size-3.5" />
+          </button>
+        ) : null}
         <input
           ref={inputRef}
           type="file"
@@ -85,6 +131,11 @@ export function AvatarImagePicker({
           onChange={(event) => void handleFileChange(event)}
         />
       </div>
+      {showPendingHint ? (
+        <p className="text-center text-xs text-muted-foreground">
+          Se subirá al guardar
+        </p>
+      ) : null}
       {error ? <p className="text-center text-xs text-danger">{error}</p> : null}
     </div>
   );

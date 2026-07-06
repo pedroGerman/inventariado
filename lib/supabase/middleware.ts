@@ -8,7 +8,11 @@ import {
 } from "@/lib/config";
 
 function isPublicAuthRoute(pathname: string) {
-  return pathname.startsWith("/login") || pathname.startsWith("/signup");
+  return (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/auth/callback")
+  );
 }
 
 export async function updateSession(request: NextRequest) {

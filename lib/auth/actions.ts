@@ -72,11 +72,15 @@ export async function signup(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+    "http://localhost:3000";
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { name },
+      emailRedirectTo: `${siteUrl}/auth/callback`,
     },
   });
 
@@ -96,6 +100,58 @@ export async function signup(formData: FormData) {
     success:
       "Cuenta creada. Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.",
   };
+}
+
+export async function changePassword(formData: FormData) {
+  const currentPassword = formData.get("currentPassword") as string;
+  const newPassword = formData.get("newPassword") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  if (isMockMode()) {
+    return { error: "Cambiar contraseña no está disponible en modo demo." };
+  }
+
+  if (!currentPassword) {
+    return { error: "Ingresa tu contraseña actual." };
+  }
+
+  if (!isPasswordValid(newPassword)) {
+    return { error: "La nueva contraseña no cumple los requisitos." };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { error: "Las contraseñas nuevas no coinciden." };
+  }
+
+  if (currentPassword === newPassword) {
+    return { error: "La nueva contraseña debe ser distinta a la actual." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user?.email) {
+    return { error: "Debes iniciar sesión para cambiar la contraseña." };
+  }
+
+  const { error: verifyError } = await supabase.auth.signInWithPassword({
+    email: user.email,
+    password: currentPassword,
+  });
+
+  if (verifyError) {
+    return { error: "La contraseña actual es incorrecta." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return { success: "Tu contraseña se actualizó correctamente." };
 }
 
 export async function logout() {
