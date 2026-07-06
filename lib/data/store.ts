@@ -467,6 +467,7 @@ export function saveAccountProfile(account: AccountProfile): void {
   const db = getCache();
   db.account = account;
   if (isMockMode()) persistMock();
+  else notifyUpdate();
 }
 
 export async function nextOrderNumber(businessId: string): Promise<string> {

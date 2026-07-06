@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -15,10 +15,12 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { DashboardMetricCard } from "@/components/dashboard/DashboardMetricCard";
 import { DashboardPeriodPicker } from "@/components/dashboard/DashboardPeriodPicker";
-import { getBusiness } from "@/lib/mock/db";
+import { getBusiness, getAccountProfile } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { useMounted } from "@/lib/hooks/useMounted";
 import { useEmployeeStore } from "@/lib/store/employee";
+import { isMockMode } from "@/lib/config";
+import { getProfile } from "@/lib/profile/actions";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import {
   DEFAULT_DASHBOARD_PERIOD,
@@ -40,6 +42,19 @@ export default function DashboardPage() {
   });
   const [periodFilter, setPeriodFilter] =
     useState<DashboardPeriodFilter>(DEFAULT_DASHBOARD_PERIOD);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadAvatar() {
+      const remote = isMockMode() ? null : await getProfile();
+      const profile = remote ?? getAccountProfile();
+      setAvatarUrl(profile.avatar_url);
+    }
+
+    void loadAvatar();
+    window.addEventListener("pos-db-updated", loadAvatar);
+    return () => window.removeEventListener("pos-db-updated", loadAvatar);
+  }, []);
 
   const business = mounted ? getBusiness() : null;
   const businessName = business?.name?.trim() || "Mi tienda";
@@ -75,6 +90,7 @@ export default function DashboardPage() {
         businessName={businessName}
         employeeName={current?.name ?? "—"}
         employeeRole={current?.role ?? "—"}
+        avatarUrl={avatarUrl}
       />
 
       <div className="flex flex-col gap-6 px-3 py-4">

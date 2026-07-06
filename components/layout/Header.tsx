@@ -14,6 +14,7 @@ interface HeaderProps {
   businessName?: string;
   employeeName?: string;
   employeeRole?: string;
+  avatarUrl?: string | null;
   showEmployeeSwitcher?: boolean;
   onSwitchEmployee?: () => void;
 }
@@ -28,15 +29,28 @@ export function Header({
   businessName,
   employeeName,
   employeeRole,
+  avatarUrl,
 }: HeaderProps) {
   const router = useRouter();
 
   if (businessName) {
+    const avatarFallback =
+      employeeName?.trim().charAt(0) || businessName.charAt(0);
+
     return (
       <header className="sticky top-0 z-30 bg-white border-slate-200 px-4 pb-3 pt-5">
         <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-            {businessName.charAt(0)}
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-bold text-primary">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={avatarUrl}
+                alt=""
+                className="size-full object-cover"
+              />
+            ) : (
+              avatarFallback
+            )}
           </div>
           <div className="flex-1 min-w-0 flex flex-col">
             <p className="truncate font-semibold text-sm text-slate-900">{businessName}</p>
