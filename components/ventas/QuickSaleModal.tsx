@@ -60,7 +60,7 @@ export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalP
       open={open}
       onClose={onClose}
       title={mode === "sale" ? "Venta Rápida" : "Compra Rápida"}
-      fitContent
+      snapPoint={0.95}
     >
       <div className="space-y-4">
         <SelectField
@@ -79,6 +79,8 @@ export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalP
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Descripción opcional"
+          enterKeyHint="done"
+          autoComplete="off"
         />
         <div className="rounded-2xl bg-slate-100 px-4 py-3 text-right text-2xl font-bold">
           RD$ {getFinalAmount().toLocaleString("es-DO")}
