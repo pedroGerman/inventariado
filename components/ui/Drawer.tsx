@@ -7,10 +7,17 @@ import { cn } from "@/lib/utils/cn";
 
 function Drawer({
   shouldScaleBackground = false,
+  fixed = true,
+  repositionInputs = true,
   ...props
 }: React.ComponentProps<typeof DrawerPrimitive.Root>) {
   return (
-    <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
+    <DrawerPrimitive.Root
+      shouldScaleBackground={shouldScaleBackground}
+      fixed={fixed}
+      repositionInputs={repositionInputs}
+      {...props}
+    />
   );
 }
 
@@ -59,6 +66,11 @@ interface AppDrawerProps {
   snapPoint?: number;
   /** Size to content with min/max height constraints. */
   fitContent?: boolean;
+  /**
+   * When true, vaul shrinks drawer height instead of pushing it up when the
+   * keyboard opens — avoids empty white gaps on iOS Safari.
+   */
+  fixed?: boolean;
 }
 
 function AppDrawer({
@@ -69,6 +81,7 @@ function AppDrawer({
   className,
   snapPoint = 0.95,
   fitContent = false,
+  fixed = true,
 }: AppDrawerProps) {
   const drawerHeight = `${snapPoint * 100}dvh`;
 
@@ -78,13 +91,11 @@ function AppDrawer({
       style={
         fitContent
           ? {
-              height: "fit-content",
-              minHeight: "50dvh",
+              height: "auto",
               maxHeight: "95dvh",
             }
           : {
               height: drawerHeight,
-              minHeight: "50dvh",
               maxHeight: drawerHeight,
             }
       }
@@ -108,9 +119,23 @@ function AppDrawer({
       <div
         data-vaul-no-drag
         className={cn(
-          "safe-bottom min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-4 pb-4",
+          "safe-bottom overscroll-y-contain px-4 pb-4",
+          fitContent
+            ? "overflow-y-auto"
+            : "min-h-0 flex-1 overflow-y-auto",
           className,
         )}
+        onFocusCapture={(event) => {
+          const target = event.target;
+          if (
+            target instanceof HTMLInputElement ||
+            target instanceof HTMLTextAreaElement
+          ) {
+            requestAnimationFrame(() => {
+              target.scrollIntoView({ block: "nearest", inline: "nearest" });
+            });
+          }
+        }}
       >
         {children}
       </div>
@@ -120,6 +145,7 @@ function AppDrawer({
   return (
     <Drawer
       open={open}
+      fixed={fixed}
       onOpenChange={(isOpen) => {
         if (!isOpen) onClose();
       }}

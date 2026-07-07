@@ -53,7 +53,12 @@ export function Calculator({ value, onChange }: CalculatorProps) {
           <button
             key={`${key}-${i}`}
             type="button"
-            onClick={() => handleKey(key)}
+            onClick={() => {
+              if (document.activeElement instanceof HTMLInputElement) {
+                document.activeElement.blur();
+              }
+              handleKey(key);
+            }}
             className={cn(
               "flex h-12 items-center justify-center rounded-xl bg-slate-100 text-lg font-semibold active:bg-slate-200",
               ["+", "-", "×", "÷", "="].includes(key) && "bg-primary/10 text-primary",
