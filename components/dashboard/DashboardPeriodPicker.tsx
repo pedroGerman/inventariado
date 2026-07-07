@@ -2,10 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import {
   DASHBOARD_PERIOD_PRESETS,
   getDashboardPeriodLabel,
+  getDraftRangeFromFilter,
+  getDraftRangePosition,
   isPresetSelected,
   MONTHS_FULL_ES,
   type DashboardPeriodFilter,
@@ -56,16 +59,35 @@ export function DashboardPeriodPicker({
   const [tab, setTab] = useState<PickerTab>("preset");
   const [calendarView, setCalendarView] = useState<CalendarView>("month");
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
+  const [draftStart, setDraftStart] = useState<string | null>(null);
+  const [draftEnd, setDraftEnd] = useState<string | null>(null);
   const currentYear = new Date().getFullYear();
 
   const displayLabel = getDashboardPeriodLabel(value);
+
+  function syncDraftFromValue() {
+    const draft = getDraftRangeFromFilter(value);
+    setDraftStart(draft.start);
+    setDraftEnd(draft.end);
+  }
 
   useEffect(() => {
     if (value.kind === "day") {
       const parts = parseDateParts(value.date);
       setSelectedMonth(parts.month);
+      return;
+    }
+
+    if (value.kind === "range") {
+      const parts = parseDateParts(value.startDate);
+      setSelectedMonth(parts.month);
     }
   }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    syncDraftFromValue();
+  }, [open, value]);
 
   useEffect(() => {
     if (!open) return;
@@ -105,15 +127,46 @@ export function DashboardPeriodPicker({
     setOpen(false);
   }
 
-  function selectDay(day: number) {
+  function handleDayClick(day: number) {
     const date = toDateISO(currentYear, selectedMonth, day);
-    onChange({ kind: "day", date });
+
+    if (!draftStart || (draftStart && draftEnd)) {
+      setDraftStart(date);
+      setDraftEnd(null);
+      return;
+    }
+
+    if (date < draftStart) {
+      setDraftEnd(draftStart);
+      setDraftStart(date);
+      return;
+    }
+
+    setDraftEnd(date);
+  }
+
+  function applyRange() {
+    if (!draftStart) return;
+
+    const startDate = draftStart;
+    const endDate = draftEnd ?? draftStart;
+    onChange({
+      kind: "range",
+      startDate: startDate <= endDate ? startDate : endDate,
+      endDate: startDate <= endDate ? endDate : startDate,
+    });
     setOpen(false);
+  }
+
+  function clearDraft() {
+    setDraftStart(null);
+    setDraftEnd(null);
   }
 
   function openCalendarTab() {
     setTab("calendar");
     setCalendarView("month");
+    syncDraftFromValue();
   }
 
   function goToPreviousMonth() {
@@ -128,6 +181,8 @@ export function DashboardPeriodPicker({
     calendarView === "month"
       ? String(currentYear)
       : MONTHS_FULL_ES[selectedMonth];
+
+  const canApply = draftStart != null;
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
@@ -243,9 +298,12 @@ export function DashboardPeriodPicker({
                 <div className="grid grid-cols-3 gap-2">
                   {MONTHS_FULL_ES.map((monthLabel, monthIndex) => {
                     const selected =
-                      value.kind === "day" &&
-                      parseDateParts(value.date).year === currentYear &&
-                      parseDateParts(value.date).month === monthIndex;
+                      (value.kind === "day" &&
+                        parseDateParts(value.date).year === currentYear &&
+                        parseDateParts(value.date).month === monthIndex) ||
+                      (value.kind === "range" &&
+                        parseDateParts(value.startDate).year === currentYear &&
+                        parseDateParts(value.startDate).month === monthIndex);
                     return (
                       <button
                         key={monthLabel}
@@ -286,37 +344,80 @@ export function DashboardPeriodPicker({
                         return <div key={`empty-${index}`} className="h-10" />;
                       }
 
-                      const isSelected =
-                        value.kind === "day" &&
-                        value.date === toDateISO(currentYear, selectedMonth, day);
-                      const isToday =
-                        (() => {
-                          const now = new Date();
-                          return (
-                            now.getFullYear() === currentYear &&
-                            now.getMonth() === selectedMonth &&
-                            now.getDate() === day
-                          );
-                        })();
+                      const dateISO = toDateISO(currentYear, selectedMonth, day);
+                      const rangePosition = getDraftRangePosition(
+                        dateISO,
+                        draftStart,
+                        draftEnd,
+                      );
+                      const isRangeStart = rangePosition === "start";
+                      const isRangeEnd = rangePosition === "end";
+                      const isRangeMiddle = rangePosition === "middle";
+                      const isRangeEndpoint = isRangeStart || isRangeEnd;
+                      const hasDistinctRange =
+                        draftStart != null &&
+                        draftEnd != null &&
+                        draftStart !== draftEnd;
+                      const isToday = (() => {
+                        const now = new Date();
+                        return (
+                          now.getFullYear() === currentYear &&
+                          now.getMonth() === selectedMonth &&
+                          now.getDate() === day
+                        );
+                      })();
 
                       return (
                         <button
                           key={`${currentYear}-${selectedMonth}-${day}`}
                           type="button"
-                          onClick={() => selectDay(day)}
+                          onClick={() => handleDayClick(day)}
                           className={cn(
-                            "flex h-10 items-center justify-center rounded-xl text-sm font-medium transition-colors",
-                            isSelected
+                            "flex h-10 items-center justify-center text-sm font-medium transition-colors",
+                            isRangeEndpoint
                               ? "bg-slate-900 text-white"
-                              : isToday
+                              : isRangeMiddle
                                 ? "bg-slate-100 text-slate-900"
-                                : "text-slate-900 hover:bg-slate-100",
+                                : isToday
+                                  ? "rounded-xl bg-slate-100 text-slate-900"
+                                  : "rounded-xl text-slate-900 hover:bg-slate-100",
+                            hasDistinctRange &&
+                              isRangeStart &&
+                              "rounded-l-xl rounded-r-none",
+                            hasDistinctRange &&
+                              isRangeEnd &&
+                              "rounded-l-none rounded-r-xl",
+                            isRangeEndpoint &&
+                              !hasDistinctRange &&
+                              "rounded-xl",
                           )}
                         >
                           {day}
                         </button>
                       );
                     })}
+                  </div>
+
+                  <div className="mt-4 flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 !rounded-lg !py-5"
+                      onClick={clearDraft}
+                      disabled={!draftStart}
+                    >
+                      Limpiar
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="flex-1 !rounded-lg !py-5"
+                      onClick={applyRange}
+                      disabled={!canApply}
+                    >
+                      Aplicar
+                    </Button>
                   </div>
                 </div>
               ) : null}
