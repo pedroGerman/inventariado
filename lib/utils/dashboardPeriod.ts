@@ -17,7 +17,43 @@ export type DashboardPeriodPresetId =
 
 export type DashboardPeriodFilter =
   | { kind: "preset"; preset: DashboardPeriodPresetId }
-  | { kind: "day"; date: string };
+  | { kind: "day"; date: string }
+  | { kind: "range"; startDate: string; endDate: string };
+
+function normalizeRangeDates(startDate: string, endDate: string) {
+  return startDate <= endDate
+    ? { startDate, endDate }
+    : { startDate: endDate, endDate: startDate };
+}
+
+function formatCalendarDateLabel(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  return `${day} ${MONTHS_FULL_ES[month - 1]} ${year}`;
+}
+
+function formatRangeLabel(startDate: string, endDate: string) {
+  const { startDate: start, endDate: end } = normalizeRangeDates(
+    startDate,
+    endDate,
+  );
+
+  if (start === end) {
+    return formatCalendarDateLabel(start);
+  }
+
+  const [startYear, startMonth, startDay] = start.split("-").map(Number);
+  const [endYear, endMonth, endDay] = end.split("-").map(Number);
+
+  if (startYear === endYear && startMonth === endMonth) {
+    return `${startDay} - ${endDay} ${MONTHS_FULL_ES[startMonth - 1]}`;
+  }
+
+  if (startYear === endYear) {
+    return `${startDay} ${MONTHS_FULL_ES[startMonth - 1].slice(0, 3)} - ${endDay} ${MONTHS_FULL_ES[endMonth - 1].slice(0, 3)} ${startYear}`;
+  }
+
+  return `${formatCalendarDateLabel(start)} - ${formatCalendarDateLabel(end)}`;
+}
 
 export const DEFAULT_DASHBOARD_PERIOD: DashboardPeriodFilter = {
   kind: "preset",
@@ -91,6 +127,19 @@ export function resolveDashboardPeriodRange(
     return presetToRange(filter.preset);
   }
 
+  if (filter.kind === "range") {
+    const { startDate, endDate } = normalizeRangeDates(
+      filter.startDate,
+      filter.endDate,
+    );
+    const [startYear, startMonth, startDay] = startDate.split("-").map(Number);
+    const [endYear, endMonth, endDay] = endDate.split("-").map(Number);
+    return {
+      start: startOfDay(new Date(startYear, startMonth - 1, startDay)),
+      end: endOfDay(new Date(endYear, endMonth - 1, endDay)),
+    };
+  }
+
   const [year, month, day] = filter.date.split("-").map(Number);
   const date = new Date(year, month - 1, day);
   return { start: startOfDay(date), end: endOfDay(date) };
@@ -104,8 +153,44 @@ export function getDashboardPeriodLabel(filter: DashboardPeriodFilter): string {
     );
   }
 
+  if (filter.kind === "range") {
+    return formatRangeLabel(filter.startDate, filter.endDate);
+  }
+
   const [year, month, day] = filter.date.split("-").map(Number);
   return `${day} ${MONTHS_FULL_ES[month - 1]} ${year}`;
+}
+
+export function getDraftRangeFromFilter(
+  filter: DashboardPeriodFilter,
+): { start: string | null; end: string | null } {
+  if (filter.kind === "range") {
+    return { start: filter.startDate, end: filter.endDate };
+  }
+
+  if (filter.kind === "day") {
+    return { start: filter.date, end: filter.date };
+  }
+
+  return { start: null, end: null };
+}
+
+export type DraftRangePosition = "start" | "end" | "middle" | false;
+
+export function getDraftRangePosition(
+  date: string,
+  start: string | null,
+  end: string | null,
+): DraftRangePosition {
+  if (!start) return false;
+
+  const effectiveEnd = end ?? start;
+  const { startDate, endDate } = normalizeRangeDates(start, effectiveEnd);
+
+  if (date === startDate) return "start";
+  if (date === endDate) return "end";
+  if (date > startDate && date < endDate) return "middle";
+  return false;
 }
 
 export function isPresetSelected(
