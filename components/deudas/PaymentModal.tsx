@@ -47,7 +47,7 @@ export function PaymentModal({
 }: PaymentModalProps) {
   const isPayable = flow === "pay";
   const [method, setMethod] = useState("cash");
-  const [printReceipt, setPrintReceipt] = useState(true);
+  const [printReceipt, setPrintReceipt] = useState(false);
   const [partialAmount, setPartialAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +58,7 @@ export function PaymentModal({
   useEffect(() => {
     if (!open) {
       setPartialAmount("");
+      setPrintReceipt(false);
       setError(null);
     }
   }, [open]);
