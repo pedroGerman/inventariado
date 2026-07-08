@@ -5,9 +5,15 @@ import { cn } from "@/lib/utils/cn";
 interface CalculatorProps {
   value: string;
   onChange: (value: string) => void;
+  /** Render the built-in value display above the keypad. Default true. */
+  showDisplay?: boolean;
 }
 
-export function Calculator({ value, onChange }: CalculatorProps) {
+export function Calculator({
+  value,
+  onChange,
+  showDisplay = true,
+}: CalculatorProps) {
   const keys = [
     "C", "÷", "×", "⌫",
     "7", "8", "9", "-",
@@ -45,9 +51,11 @@ export function Calculator({ value, onChange }: CalculatorProps) {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-2xl bg-slate-100 px-4 py-3 text-right text-2xl font-bold text-slate-900">
-        {value || "0"}
-      </div>
+      {showDisplay ? (
+        <div className="rounded-2xl bg-slate-100 px-4 py-3 text-right text-2xl font-bold text-slate-900">
+          {value || "0"}
+        </div>
+      ) : null}
       <div className="grid grid-cols-4 gap-2">
         {keys.map((key, i) => (
           <button
