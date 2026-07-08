@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils/cn";
@@ -39,7 +40,10 @@ export function Header({
 
     return (
       <header className="sticky top-0 z-30 bg-white border-slate-200 px-4 pb-3 pt-5">
-        <div className="flex items-center gap-2">
+        <Link
+          href="/opciones"
+          className="-mx-1 flex items-center gap-2 rounded-xl px-1 py-0.5 transition-colors"
+        >
           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-bold text-primary">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -52,21 +56,13 @@ export function Header({
               avatarFallback
             )}
           </div>
-          <div className="flex-1 min-w-0 flex flex-col">
-            <p className="truncate font-semibold text-sm text-slate-900">{businessName}</p>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <p className="truncate text-sm font-semibold text-slate-900">{businessName}</p>
             <p className="truncate text-xs text-slate-500">
               {employeeName} · {employeeRole}
             </p>
           </div>
-          {/* {showEmployeeSwitcher && (
-            <button
-              onClick={onSwitchEmployee}
-              className="rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600"
-            >
-              Cambiar empleado
-            </button>
-          )} */}
-        </div>
+        </Link>
       </header>
     );
   }
