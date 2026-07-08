@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { TextField } from "@/components/ui/Input";
+import { AmountDisplayField } from "@/components/ui/AmountDisplayField";
+import { NumericKeyboard } from "@/components/ui/NumericKeyboard";
 import { SelectField, SelectItem } from "@/components/ui/Select";
 import { Toggle } from "@/components/ui/Toggle";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
@@ -136,6 +137,7 @@ export function PaymentModal({
     <Modal
       open={open}
       onClose={onClose}
+      fitContent
       title={
         mode === "full"
           ? isPayable
@@ -144,7 +146,7 @@ export function PaymentModal({
           : "Abonar"
       }
     >
-      <div className="space-y-4">
+      <div className="space-y-4 pb-5">
         {mode === "full" && (
           <div className="flex items-center gap-2 rounded-xl bg-amber-50 px-4 py-3 text-amber-800">
             <AlertTriangle className="h-5 w-5 shrink-0" />
@@ -180,20 +182,23 @@ export function PaymentModal({
         </div>
 
         {mode === "partial" && (
-          <TextField
-            label={isPayable ? "Pagas" : "Abonas"}
-            type="number"
-            inputMode="decimal"
-            value={partialAmount}
-            onChange={(e) => setPartialAmount(e.target.value)}
-            placeholder="0"
-            className="text-lg font-bold"
-            error={
-              !valid && partialAmount
-                ? "El monto debe ser mayor a 0 y menor o igual al saldo"
-                : undefined
-            }
-          />
+          <>
+            <AmountDisplayField
+              label={isPayable ? "Pagas" : "Abonas"}
+              value={partialAmount}
+              active
+              prefix="RD$"
+              error={
+                !valid && partialAmount
+                  ? "El monto debe ser mayor a 0 y menor o igual al saldo"
+                  : undefined
+              }
+            />
+            <NumericKeyboard
+              value={partialAmount}
+              onChange={setPartialAmount}
+            />
+          </>
         )}
 
         {error && (

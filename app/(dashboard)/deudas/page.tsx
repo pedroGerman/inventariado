@@ -17,7 +17,11 @@ import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { DateFilterPicker } from "@/components/ui/DateFilterPicker";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatDateGroup, formatTime } from "@/lib/utils/date";
-import { sortDateKeysDesc, type DateFilterValue } from "@/lib/utils/calendarPicker";
+import {
+  matchesDateFilter,
+  sortDateKeysDesc,
+  type DateFilterValue,
+} from "@/lib/utils/calendarPicker";
 import { cn } from "@/lib/utils/cn";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ffElevatedMetricSurfaceClass } from "@/lib/utils/ff-surfaces";
@@ -60,14 +64,12 @@ function DeudasPageContent() {
   const allCollectDebts = debts.filter((d) => d.kind === "collect" && d.remaining > 0);
   const allPayDebts = debts.filter((d) => d.kind === "pay" && d.remaining > 0);
 
-  const collectDebts = allCollectDebts.filter((d) => {
-    if (!filterDate) return true;
-    return d.created_at.split("T")[0] === filterDate;
-  });
-  const payDebts = allPayDebts.filter((d) => {
-    if (!filterDate) return true;
-    return d.created_at.split("T")[0] === filterDate;
-  });
+  const collectDebts = allCollectDebts.filter((d) =>
+    matchesDateFilter(d.created_at.split("T")[0], filterDate),
+  );
+  const payDebts = allPayDebts.filter((d) =>
+    matchesDateFilter(d.created_at.split("T")[0], filterDate),
+  );
   const displayDebts = isCollect ? collectDebts : payDebts;
 
   const pendingCollect = allCollectDebts.reduce((s, d) => s + d.remaining, 0);

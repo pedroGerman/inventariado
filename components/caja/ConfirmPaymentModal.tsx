@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
-import { TextField } from "@/components/ui/Input";
+import { AmountDisplayField } from "@/components/ui/AmountDisplayField";
 import { NumericKeyboard } from "@/components/ui/NumericKeyboard";
 import type { PaymentMethod, PaymentType } from "@/lib/types/database";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
@@ -48,6 +48,9 @@ export function ConfirmPaymentModal({
   const isPurchase = flow === "purchase";
   const [toPay, setToPay] = useState(String(total));
   const [received, setReceived] = useState("");
+  const [activeField, setActiveField] = useState<"toPay" | "received">(
+    "received",
+  );
 
   const isCash = paymentMethod === "cash";
   const isPayLater = paymentType === "pay_later";
@@ -58,7 +61,8 @@ export function ConfirmPaymentModal({
     if (!open) return;
     setToPay(isPartialMode ? "" : String(total));
     setReceived(paymentType === "pay_all" ? String(total) : "");
-  }, [open, total, isPartialMode, paymentType, paymentMethod]);
+    setActiveField(isPartialMode || !usesKeyboard ? "toPay" : "received");
+  }, [open, total, isPartialMode, paymentType, paymentMethod, usesKeyboard]);
 
   const toPayNum = parseFloat(toPay) || 0;
   const receivedNum = parseFloat(received) || 0;
@@ -93,7 +97,7 @@ export function ConfirmPaymentModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Confirmar pago">
+    <Modal open={open} onClose={onClose} title="Confirmar pago" fitContent>
       <div className="flex flex-col gap-6 pb-4 pt-2">
         <section className="flex flex-col gap-3">
           <div className="text-center flex items-center justify-between">
@@ -134,30 +138,27 @@ export function ConfirmPaymentModal({
             )}
           </p>
         ) : isPartialMode ? (
-          <TextField
+          <AmountDisplayField
             label={isPurchase ? "Pagas ahora" : "Abonas ahora"}
             value={toPay}
-            onChange={(e) => setToPay(e.target.value)}
-            inputMode="decimal"
-            placeholder="0"
-            className="text-lg font-bold"
+            active
+            prefix="RD$"
+            onActivate={() => setActiveField("toPay")}
           />
         ) : (
           <div className="grid grid-cols-2 gap-3">
-            <TextField
+            <AmountDisplayField
               label="A pagar"
               value={toPay}
-              onChange={(e) => setToPay(e.target.value)}
-              inputMode="decimal"
-              className="text-lg font-bold"
+              active={activeField === "toPay"}
+              onActivate={() => setActiveField("toPay")}
             />
             {usesKeyboard ? (
-              <TextField
+              <AmountDisplayField
                 label={paymentMethodReceivedLabel(paymentMethod, flow)}
                 value={received}
-                onChange={(e) => setReceived(e.target.value)}
-                inputMode="decimal"
-                className="text-lg font-bold"
+                active={activeField === "received"}
+                onActivate={() => setActiveField("received")}
               />
             ) : (
               <div className="flex flex-col justify-end pb-1">
@@ -221,10 +222,10 @@ export function ConfirmPaymentModal({
           </div>
         )}
 
-        {usesKeyboard && !isPayLater && (
+        {!isPayLater && (
           <NumericKeyboard
-            value={isPartialMode ? toPay : received}
-            onChange={isPartialMode ? setToPay : setReceived}
+            value={activeField === "toPay" ? toPay : received}
+            onChange={activeField === "toPay" ? setToPay : setReceived}
           />
         )}
 

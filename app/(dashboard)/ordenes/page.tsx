@@ -31,7 +31,11 @@ import {
   serializeStatusFilter,
   type OrderListTab,
 } from "@/lib/utils/orderStatusFilter";
-import { sortDateKeysDesc, type DateFilterValue } from "@/lib/utils/calendarPicker";
+import {
+  matchesDateFilter,
+  sortDateKeysDesc,
+  type DateFilterValue,
+} from "@/lib/utils/calendarPicker";
 
 export default function OrdenesPage() {
   return (
@@ -88,7 +92,7 @@ function OrdenesPageContent() {
   const saleFiltered = useMemo(() => {
     return orders.filter((order) => {
       if (!matchesStatusFilter(order.status, statusFilters)) return false;
-      if (filterDate && order.date !== filterDate) return false;
+      if (!matchesDateFilter(order.date, filterDate)) return false;
       if (!query) return true;
       const customer = customers.find((c) => c.id === order.customer_id);
       return (
@@ -101,7 +105,7 @@ function OrdenesPageContent() {
   const purchaseFiltered = useMemo(() => {
     return purchases.filter((purchase) => {
       if (!matchesStatusFilter(purchase.status, statusFilters)) return false;
-      if (filterDate && purchase.date !== filterDate) return false;
+      if (!matchesDateFilter(purchase.date, filterDate)) return false;
       if (!query) return true;
       const supplier = suppliers.find((s) => s.id === purchase.supplier_id);
       return (

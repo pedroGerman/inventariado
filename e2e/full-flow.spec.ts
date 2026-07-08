@@ -32,6 +32,15 @@ async function login(page: import("@playwright/test").Page) {
   }
 }
 
+async function typeAmount(
+  page: import("@playwright/test").Page,
+  digits: string,
+) {
+  for (const char of digits) {
+    await page.getByRole("button", { name: char, exact: true }).click();
+  }
+}
+
 async function resetMockDb(page: import("@playwright/test").Page) {
   await page.evaluate(() => {
     localStorage.removeItem("pos-mock-db");
@@ -70,7 +79,7 @@ test.describe("Flujo completo POS (producción)", () => {
     // 5. Confirmar pago parcial (50 de 75)
     await page.getByRole("button", { name: "Continuar" }).click();
     await expect(page.getByText("Confirmar pago")).toBeVisible();
-    await page.getByLabel("Abonas ahora").fill("50");
+    await typeAmount(page, "50");
     await page.getByRole("button", { name: "FINALIZAR" }).click();
 
     // 6. Debe redirigir a detalle de deuda
@@ -81,7 +90,7 @@ test.describe("Flujo completo POS (producción)", () => {
     // 7. Abonar resto del saldo
     await page.getByRole("button", { name: "Abonar" }).click();
     await expect(page.getByRole("heading", { name: "Abonar" })).toBeVisible();
-    await page.getByLabel("Abonas").fill("25");
+    await typeAmount(page, "25");
     await page.getByRole("button", { name: "Aceptar" }).click();
 
     // 8. Deuda saldada

@@ -2,11 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/Button";
 import {
   MONTHS_FULL_ES,
   WEEKDAY_LABELS,
   buildCalendarDays,
+  getDateFilterAnchor,
   getDateFilterLabel,
+  getDraftRangePosition,
+  normalizeRange,
   parseDateParts,
   toDateISO,
   type DateFilterValue,
@@ -35,15 +39,41 @@ export function DateFilterPicker({
   const [view, setView] = useState<CalendarView>("day");
   const [displayYear, setDisplayYear] = useState(() => new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(() => new Date().getMonth());
+  const [draftStart, setDraftStart] = useState<string | null>(null);
+  const [draftEnd, setDraftEnd] = useState<string | null>(null);
 
   const displayLabel = getDateFilterLabel(value);
 
+  function syncDraftFromValue() {
+    if (!value) {
+      setDraftStart(null);
+      setDraftEnd(null);
+      return;
+    }
+    if (value.kind === "day") {
+      setDraftStart(value.date);
+      setDraftEnd(value.date);
+      return;
+    }
+    const { start, end } = normalizeRange(value.start, value.end);
+    setDraftStart(start);
+    setDraftEnd(end);
+  }
+
   useEffect(() => {
-    if (!value) return;
-    const parts = parseDateParts(value);
+    const anchor = getDateFilterAnchor(value);
+    if (!anchor) return;
+    const parts = parseDateParts(anchor);
     setDisplayYear(parts.year);
     setSelectedMonth(parts.month);
   }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+    setView("day");
+    syncDraftFromValue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -68,12 +98,38 @@ export function DateFilterPicker({
     [displayYear, selectedMonth],
   );
 
-  function selectDay(day: number) {
-    onChange(toDateISO(displayYear, selectedMonth, day));
+  function handleDayClick(day: number) {
+    const date = toDateISO(displayYear, selectedMonth, day);
+
+    if (!draftStart || (draftStart && draftEnd)) {
+      setDraftStart(date);
+      setDraftEnd(null);
+      return;
+    }
+
+    if (date < draftStart) {
+      setDraftEnd(draftStart);
+      setDraftStart(date);
+      return;
+    }
+
+    setDraftEnd(date);
+  }
+
+  function applyDraft() {
+    if (!draftStart) return;
+    const { start, end } = normalizeRange(draftStart, draftEnd ?? draftStart);
+    onChange(
+      start === end
+        ? { kind: "day", date: start }
+        : { kind: "range", start, end },
+    );
     setOpen(false);
   }
 
   function clearFilter() {
+    setDraftStart(null);
+    setDraftEnd(null);
     onChange(null);
     setOpen(false);
   }
@@ -84,6 +140,8 @@ export function DateFilterPicker({
       : view === "month"
         ? String(displayYear)
         : MONTHS_FULL_ES[selectedMonth];
+
+  const canApply = draftStart != null;
 
   return (
     <div ref={rootRef} className={cn("relative", className)}>
@@ -196,8 +254,9 @@ export function DateFilterPicker({
               <div className="grid grid-cols-3 gap-2">
                 {Array.from({ length: 12 }, (_, index) => {
                   const year = displayYear - 5 + index;
+                  const anchor = getDateFilterAnchor(value);
                   const selected =
-                    value != null && parseDateParts(value).year === year;
+                    anchor != null && parseDateParts(anchor).year === year;
                   return (
                     <button
                       key={year}
@@ -224,30 +283,24 @@ export function DateFilterPicker({
 
             {view === "month" ? (
               <div className="grid grid-cols-3 gap-2">
-                {MONTHS_FULL_ES.map((monthLabel, monthIndex) => {
-                  const selected =
-                    value != null &&
-                    parseDateParts(value).year === displayYear &&
-                    parseDateParts(value).month === monthIndex;
-                  return (
-                    <button
-                      key={monthLabel}
-                      type="button"
-                      onClick={() => {
-                        setSelectedMonth(monthIndex);
-                        setView("day");
-                      }}
-                      className={cn(
-                        "rounded-xl py-3 text-sm font-medium capitalize transition-colors",
-                        selected || selectedMonth === monthIndex
-                          ? "bg-neutral-800 text-white"
-                          : "text-neutral-500 active:bg-neutral-100",
-                      )}
-                    >
-                      {monthLabel.slice(0, 3)}
-                    </button>
-                  );
-                })}
+                {MONTHS_FULL_ES.map((monthLabel, monthIndex) => (
+                  <button
+                    key={monthLabel}
+                    type="button"
+                    onClick={() => {
+                      setSelectedMonth(monthIndex);
+                      setView("day");
+                    }}
+                    className={cn(
+                      "rounded-xl py-3 text-sm font-medium capitalize transition-colors",
+                      selectedMonth === monthIndex
+                        ? "bg-neutral-800 text-white"
+                        : "text-neutral-500 active:bg-neutral-100",
+                    )}
+                  >
+                    {monthLabel.slice(0, 3)}
+                  </button>
+                ))}
               </div>
             ) : null}
 
@@ -269,9 +322,20 @@ export function DateFilterPicker({
                       return <div key={`empty-${index}`} className="h-10" />;
                     }
 
-                    const isSelected =
-                      value != null &&
-                      value === toDateISO(displayYear, selectedMonth, day);
+                    const dateISO = toDateISO(displayYear, selectedMonth, day);
+                    const rangePosition = getDraftRangePosition(
+                      dateISO,
+                      draftStart,
+                      draftEnd,
+                    );
+                    const isRangeStart = rangePosition === "start";
+                    const isRangeEnd = rangePosition === "end";
+                    const isRangeMiddle = rangePosition === "middle";
+                    const isRangeEndpoint = isRangeStart || isRangeEnd;
+                    const hasDistinctRange =
+                      draftStart != null &&
+                      draftEnd != null &&
+                      draftStart !== draftEnd;
                     const isToday = (() => {
                       const now = new Date();
                       return (
@@ -285,20 +349,54 @@ export function DateFilterPicker({
                       <button
                         key={`${displayYear}-${selectedMonth}-${day}`}
                         type="button"
-                        onClick={() => selectDay(day)}
+                        onClick={() => handleDayClick(day)}
                         className={cn(
-                          "flex h-10 items-center justify-center rounded-xl text-sm font-medium transition-colors",
-                          isSelected
+                          "flex h-10 items-center justify-center text-sm font-medium transition-colors",
+                          isRangeEndpoint
                             ? "bg-slate-900 text-white"
-                            : isToday
+                            : isRangeMiddle
                               ? "bg-slate-100 text-slate-900"
-                              : "text-slate-900 active:bg-slate-100",
+                              : isToday
+                                ? "rounded-xl bg-slate-100 text-slate-900"
+                                : "rounded-xl text-slate-900 active:bg-slate-100",
+                          hasDistinctRange &&
+                            isRangeStart &&
+                            "rounded-l-xl rounded-r-none",
+                          hasDistinctRange &&
+                            isRangeEnd &&
+                            "rounded-l-none rounded-r-xl",
+                          isRangeEndpoint && !hasDistinctRange && "rounded-xl",
                         )}
                       >
                         {day}
                       </button>
                     );
                   })}
+                </div>
+
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="flex-1 !rounded-lg !py-5"
+                    onClick={() => {
+                      setDraftStart(null);
+                      setDraftEnd(null);
+                    }}
+                    disabled={!draftStart}
+                  >
+                    Limpiar
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="flex-1 !rounded-lg !py-5"
+                    onClick={applyDraft}
+                    disabled={!canApply}
+                  >
+                    Aplicar
+                  </Button>
                 </div>
               </div>
             ) : null}

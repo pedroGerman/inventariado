@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Calculator } from "@/components/ui/Calculator";
+import { AmountDisplayField } from "@/components/ui/AmountDisplayField";
 import { Button } from "@/components/ui/Button";
 import { AppDrawer } from "@/components/ui/Drawer";
 import { TextField } from "@/components/ui/Input";
@@ -82,10 +83,16 @@ export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalP
           enterKeyHint="done"
           autoComplete="off"
         />
-        <div className="rounded-2xl bg-slate-100 px-4 py-3 text-right text-2xl font-bold">
-          RD$ {getFinalAmount().toLocaleString("es-DO")}
-        </div>
-        <Calculator value={amount} onChange={setAmount} />
+        <AmountDisplayField label="Monto" value={amount} active prefix="RD$" />
+        {applyTax ? (
+          <p className="text-right text-sm text-muted-foreground">
+            Con IVA (18%):{" "}
+            <span className="font-semibold text-card-foreground">
+              RD$ {getFinalAmount().toLocaleString("es-DO")}
+            </span>
+          </p>
+        ) : null}
+        <Calculator value={amount} onChange={setAmount} showDisplay={false} />
         <div className="flex gap-3 pb-5">
           <Button variant="secondary" fullWidth onClick={() => buildItem(false)}>
             AGREGAR
