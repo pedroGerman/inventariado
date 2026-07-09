@@ -72,8 +72,15 @@ export function orderToReceiptDocument(
       ? null
       : debt
         ? debt.paid
-        : order.cash_received ?? order.total,
-    balanceDue: debt && debt.remaining > 0 ? debt.remaining : null,
+        : order.payment_type === "pay_later"
+          ? 0
+          : (order.cash_received ?? order.total),
+    balanceDue:
+      debt && debt.remaining > 0
+        ? debt.remaining
+        : order.payment_type === "pay_later"
+          ? order.total
+          : null,
     change: isPending ? null : order.change ?? null,
   };
 }
@@ -119,8 +126,15 @@ export function purchaseToReceiptDocument(
       ? null
       : debt
         ? debt.paid
-        : purchase.cash_paid ?? purchase.total,
-    balanceDue: debt && debt.remaining > 0 ? debt.remaining : null,
+        : purchase.payment_type === "pay_later"
+          ? 0
+          : (purchase.cash_paid ?? purchase.total),
+    balanceDue:
+      debt && debt.remaining > 0
+        ? debt.remaining
+        : purchase.payment_type === "pay_later"
+          ? purchase.total
+          : null,
     change: isPending ? null : purchase.change ?? null,
   };
 }

@@ -187,7 +187,9 @@ export default function CompraDetallePage() {
             discount={purchase.discount}
             total={purchase.total}
           />
-          {purchase.cash_paid != null && (
+          {purchase.payment_type !== "pay_later" &&
+            purchase.cash_paid != null &&
+            purchase.cash_paid > 0 && (
             <div className="flex flex-col gap-2 border-t border-border/50 pt-3 text-sm">
               <div className="flex justify-between text-muted-foreground">
                 <span>Efectivo pagado</span>
@@ -203,6 +205,14 @@ export default function CompraDetallePage() {
                   </span>
                 </div>
               )}
+            </div>
+          )}
+          {purchase.payment_type === "pay_later" && !debt && (
+            <div className="flex justify-between border-t border-border/50 pt-3 text-sm text-warning">
+              <span>Saldo pendiente</span>
+              <span className="shrink-0 text-xs font-bold tabular-nums">
+                {formatCurrency(purchase.total)}
+              </span>
             </div>
           )}
           {debt && debt.paid > 0 && (

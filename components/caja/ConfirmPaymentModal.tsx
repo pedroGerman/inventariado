@@ -59,10 +59,15 @@ export function ConfirmPaymentModal({
 
   useEffect(() => {
     if (!open) return;
+    if (isPayLater) {
+      setToPay("");
+      setReceived("");
+      return;
+    }
     setToPay(isPartialMode ? "" : String(total));
     setReceived(paymentType === "pay_all" ? String(total) : "");
     setActiveField(isPartialMode || !usesKeyboard ? "toPay" : "received");
-  }, [open, total, isPartialMode, paymentType, paymentMethod, usesKeyboard]);
+  }, [open, total, isPartialMode, isPayLater, paymentType, paymentMethod, usesKeyboard]);
 
   const toPayNum = parseFloat(toPay) || 0;
   const receivedNum = parseFloat(received) || 0;
@@ -70,12 +75,14 @@ export function ConfirmPaymentModal({
     total,
     paymentType,
     paymentMethod,
-    toPayNum,
+    isPartialMode ? toPayNum : isPayLater ? 0 : toPayNum,
     isPartialMode
       ? undefined
-      : receivedNum > 0
-        ? receivedNum
-        : undefined,
+      : isPayLater
+        ? undefined
+        : receivedNum > 0
+          ? receivedNum
+          : undefined,
   );
   const createsDebt = saleCreatesDebt(amounts);
   const needsParty = !customerName;
@@ -91,6 +98,10 @@ export function ConfirmPaymentModal({
       return;
     }
     if (!canSubmit) return;
+    if (isPayLater) {
+      void onConfirm(0, 0);
+      return;
+    }
     const paidNow = isPartialMode ? toPayNum : toPayNum || total;
     const amountIn = isPartialMode ? toPayNum : receivedNum || paidNow;
     void onConfirm(paidNow, amountIn);
