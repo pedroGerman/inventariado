@@ -7,9 +7,10 @@ import type * as React from "react";
 import { cn } from "@/lib/utils/cn";
 
 function Dialog({
+  modal = true,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />;
+  return <DialogPrimitive.Root data-slot="dialog" modal={modal} {...props} />;
 }
 
 function DialogTrigger({
@@ -48,12 +49,15 @@ function DialogOverlay({
 
 function DialogContent({
   className,
+  overlayClassName,
   children,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content>) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  overlayClassName?: string;
+}) {
   return (
     <DialogPortal data-slot="dialog-portal">
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
@@ -147,6 +151,12 @@ interface AppDialogProps {
   description?: React.ReactNode;
   footer?: React.ReactNode;
   className?: string;
+  overlayClassName?: string;
+  /**
+   * Set false when nesting inside a drawer/dialog so closing this layer
+   * does not dismiss the parent.
+   */
+  modal?: boolean;
 }
 
 function AppDialog({
@@ -157,15 +167,18 @@ function AppDialog({
   children,
   footer,
   className,
+  overlayClassName,
+  modal = true,
 }: AppDialogProps) {
   return (
     <Dialog
       open={open}
+      modal={modal}
       onOpenChange={(isOpen) => {
         if (!isOpen) onClose();
       }}
     >
-      <DialogContent className={className}>
+      <DialogContent className={className} overlayClassName={overlayClassName}>
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}

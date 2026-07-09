@@ -4,6 +4,17 @@ import * as React from "react";
 import { Drawer as DrawerPrimitive } from "vaul";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
+import { isPortaledOverlayTarget, isSelectOpenInDocument } from "@/lib/utils/overlayTarget";
+
+function preventDrawerDismissOnOverlay(
+  event: CustomEvent<{ originalEvent: PointerEvent | FocusEvent }>,
+) {
+  const target =
+    event.target ?? event.detail?.originalEvent?.target ?? null;
+  if (isPortaledOverlayTarget(target) || isSelectOpenInDocument()) {
+    event.preventDefault();
+  }
+}
 
 function Drawer({
   shouldScaleBackground = false,
@@ -48,6 +59,9 @@ const DrawerContent = React.forwardRef<
         className,
       )}
       style={style}
+      onPointerDownOutside={preventDrawerDismissOnOverlay}
+      onInteractOutside={preventDrawerDismissOnOverlay}
+      onFocusOutside={preventDrawerDismissOnOverlay}
       {...props}
     >
       {children}
