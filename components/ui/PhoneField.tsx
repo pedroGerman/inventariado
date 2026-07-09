@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/Input";
 import {
   Select,
   SelectContent,
+  SelectFieldTrigger,
   SelectItem,
-  SelectTrigger,
   SelectValue,
 } from "@/components/ui/Select";
 import {
@@ -70,21 +70,18 @@ export function PhoneField({
             dismiss();
           }}
         >
-          <SelectTrigger
+          <SelectFieldTrigger
+            open={open}
+            dismiss={dismiss}
             aria-label="Código de área"
             className="!h-9 !w-[6.75rem] shrink-0 rounded-md bg-input-surface px-2 text-base shadow-input-edge hover:bg-input-surface dark:hover:bg-input-surface"
-            onPointerDown={(event) => {
-              if (!open) return;
-              event.preventDefault();
-              dismiss();
-            }}
           >
             <SelectValue asChild>
               <span className="truncate text-base text-foreground">
                 +1 {areaCode}
               </span>
             </SelectValue>
-          </SelectTrigger>
+          </SelectFieldTrigger>
           <SelectContent onDismiss={dismiss}>
             {PHONE_AREA_CODES.map((code) => (
               <SelectItem key={code} value={code}>

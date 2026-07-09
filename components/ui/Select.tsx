@@ -1,6 +1,7 @@
 "use client";
 
 import * as SelectPrimitive from "@radix-ui/react-select";
+import { Branch as DismissableLayerBranch } from "@radix-ui/react-dismissable-layer";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Children, isValidElement, useRef, useState } from "react";
 import type * as React from "react";
@@ -71,6 +72,33 @@ function isSelectTriggerTarget(target: EventTarget | null): boolean {
   );
 }
 
+function SelectFieldTrigger({
+  open,
+  dismiss,
+  className,
+  onPointerDownCapture,
+  ...props
+}: React.ComponentProps<typeof SelectTrigger> & {
+  open: boolean;
+  dismiss: () => void;
+}) {
+  return (
+    <DismissableLayerBranch className={cn(open && "pointer-events-auto")}>
+      <SelectTrigger
+        {...props}
+        className={cn(className, open && "pointer-events-auto")}
+        onPointerDownCapture={(event) => {
+          onPointerDownCapture?.(event);
+          if (!open) return;
+          event.preventDefault();
+          event.stopPropagation();
+          dismiss();
+        }}
+      />
+    </DismissableLayerBranch>
+  );
+}
+
 function SelectContent({
   className,
   children,
@@ -99,7 +127,10 @@ function SelectContent({
           onCloseAutoFocus?.(event);
         }}
         onPointerDownOutside={(event) => {
-          if (isSelectTriggerTarget(event.target)) return;
+          if (isSelectTriggerTarget(event.target)) {
+            event.preventDefault();
+            return;
+          }
           event.preventDefault();
           onDismiss?.();
           onPointerDownOutside?.(event);
@@ -316,23 +347,20 @@ function SelectField({
         onValueChange={onValueChange}
         disabled={disabled}
       >
-        <SelectTrigger
+        <SelectFieldTrigger
           id={fieldId}
+          open={open}
+          dismiss={dismiss}
           size={size}
           aria-invalid={error ? true : undefined}
           className={triggerClassName}
-          onPointerDown={(event) => {
-            if (!open) return;
-            event.preventDefault();
-            dismiss();
-          }}
         >
           <SelectValue asChild placeholder={placeholder}>
             <span className="pointer-events-none min-w-0 flex-1 truncate text-left text-foreground">
               {displayText || placeholder || "\u00A0"}
             </span>
           </SelectValue>
-        </SelectTrigger>
+        </SelectFieldTrigger>
         <SelectContent
           side={contentSide}
           avoidCollisions={avoidCollisions}
@@ -354,6 +382,7 @@ export {
   Select,
   SelectContent,
   SelectField,
+  SelectFieldTrigger,
   SelectGroup,
   SelectItem,
   SelectLabel,
