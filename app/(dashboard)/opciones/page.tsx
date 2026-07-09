@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ShoppingBag,
@@ -10,6 +10,8 @@ import {
   Wallet,
   ChevronRight,
   RefreshCw,
+  MessageSquare,
+  Inbox,
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/Card";
@@ -20,6 +22,7 @@ import { isMockMode } from "@/lib/config";
 import { mockEmployees } from "@/lib/mock/seed";
 import { Modal } from "@/components/ui/Modal";
 import { AccountProfileHeader } from "@/components/opciones/AccountProfileHeader";
+import { getFeedbackAdminStatus } from "@/lib/feedback/actions";
 
 const menuItems = [
   { href: "/compras", label: "Compras", icon: ShoppingBag },
@@ -28,6 +31,7 @@ const menuItems = [
   { href: "/opciones/categorias", label: "Categorías", icon: Tags },
   { href: "/opciones/clientes", label: "Clientes/Proveedores", icon: Users },
   { href: "/deudas", label: "Deudas", icon: Wallet },
+  { href: "/opciones/feedback", label: "Sugerencias", icon: MessageSquare },
   // { href: "#", label: "Ajustes", icon: Settings },
 ];
 
@@ -35,7 +39,22 @@ export default function OpcionesPage() {
   const current = useEmployeeStore((s) => s.current);
   const setCurrent = useEmployeeStore((s) => s.setCurrent);
   const [employeeModal, setEmployeeModal] = useState(false);
+  const [isFeedbackAdmin, setIsFeedbackAdmin] = useState(false);
   const employees = isMockMode() ? mockEmployees : current ? [current] : [];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadAdminStatus() {
+      const isAdmin = await getFeedbackAdminStatus();
+      if (!cancelled) setIsFeedbackAdmin(isAdmin);
+    }
+
+    void loadAdminStatus();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -91,6 +110,28 @@ export default function OpcionesPage() {
             </div>
           </Card>
         </div>
+
+        {isFeedbackAdmin && (
+          <div className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold text-card-foreground">
+              Administración
+            </h2>
+            <Card className="gap-0 !py-0">
+              <div className="divide-y divide-border/50 !px-3.5">
+                <Link
+                  href="/opciones/feedback/admin"
+                  className="flex items-center gap-3 py-3.5 text-sm transition-colors hover:text-foreground"
+                >
+                  <Inbox className="h-5 w-5 shrink-0 text-muted-foreground" />
+                  <span className="flex-1 font-medium text-card-foreground">
+                    Ver sugerencias recibidas
+                  </span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </Link>
+              </div>
+            </Card>
+          </div>
+        )}
 
         {isMockMode() && (
           <div className="flex flex-col gap-3">

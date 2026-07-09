@@ -62,6 +62,25 @@ Ejecutar en orden:
 1. `001_initial_schema.sql`
 2. `002_add_transfer_payment_method.sql`
 3. `003_profiles.sql` — tabla `profiles` + avatar de usuario
+4. `008_feedback.sql` — comentarios de usuarios + permisos de admin de feedback
+
+### Dar acceso al panel de comentarios
+
+En el **SQL Editor**, autoriza a una persona de dos formas (elige una):
+
+```sql
+-- Opción 1: por correo en allowlist
+INSERT INTO public.feedback_admin_allowlist (email)
+VALUES ('dueno@ejemplo.com')
+ON CONFLICT (email) DO NOTHING;
+
+-- Opción 2: flag en el perfil
+UPDATE public.profiles
+SET is_feedback_admin = true
+WHERE lower(email) = lower('dueno@ejemplo.com');
+```
+
+Los usuarios **no pueden** auto-asignarse este permiso: un trigger en `profiles` bloquea cambios a `is_feedback_admin` desde la app. La lectura y actualización de comentarios se valida en **RLS** y en **server actions**, no en el cliente.
 
 ## Extensibilidad
 
