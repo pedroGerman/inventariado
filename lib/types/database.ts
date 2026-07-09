@@ -20,6 +20,8 @@ export interface Business {
   created_at: string;
 }
 
+export type FeedbackStatus = "pending" | "read" | "resolved";
+
 export interface AccountProfile {
   user_id: string;
   full_name: string;
@@ -27,6 +29,20 @@ export interface AccountProfile {
   username: string;
   phone: string | null;
   avatar_url: string | null;
+  is_feedback_admin?: boolean;
+}
+
+export interface UserFeedback {
+  id: string;
+  user_id: string;
+  business_id: string | null;
+  sender_name: string | null;
+  sender_email: string | null;
+  message: string;
+  status: FeedbackStatus;
+  created_at: string;
+  read_at: string | null;
+  resolved_at: string | null;
 }
 
 export interface Employee {
