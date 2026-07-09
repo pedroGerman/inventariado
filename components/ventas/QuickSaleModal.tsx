@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Calculator } from "@/components/ui/Calculator";
 import { AmountDisplayField } from "@/components/ui/AmountDisplayField";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +24,14 @@ export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalP
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [applyTax, setApplyTax] = useState(false);
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
+  const descriptionRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      setDescriptionFocused(false);
+    }
+  }, [open]);
 
   function getFinalAmount() {
     const base = parseFloat(amount) || 0;
@@ -61,7 +69,10 @@ export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalP
       open={open}
       onClose={onClose}
       title={mode === "sale" ? "Venta Rápida" : "Compra Rápida"}
+      fitContent={descriptionFocused}
       snapPoint={0.95}
+      repositionInputs={false}
+      scrollFocusedInputs={false}
     >
       <div className="space-y-4">
         <SelectField
@@ -76,14 +87,33 @@ export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalP
           <SelectItem value="18">18%</SelectItem>
         </SelectField>
         <TextField
+          ref={descriptionRef}
           label="Descripción"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Descripción opcional"
           enterKeyHint="done"
           autoComplete="off"
+          onFocus={() => {
+            setDescriptionFocused(true);
+            requestAnimationFrame(() => {
+              window.setTimeout(() => {
+                descriptionRef.current?.scrollIntoView({
+                  block: "center",
+                  behavior: "smooth",
+                });
+              }, 150);
+            });
+          }}
+          onBlur={() => setDescriptionFocused(false)}
         />
-        <AmountDisplayField label="Monto" value={amount} active prefix="RD$" />
+        <AmountDisplayField
+          label="Monto"
+          value={amount}
+          active
+          prefix="RD$"
+          onActivate={() => descriptionRef.current?.blur()}
+        />
         {applyTax ? (
           <p className="text-right text-sm text-muted-foreground">
             Con IVA (18%):{" "}
@@ -92,19 +122,23 @@ export function QuickSaleModal({ open, onClose, mode = "sale" }: QuickSaleModalP
             </span>
           </p>
         ) : null}
-        <Calculator value={amount} onChange={setAmount} showDisplay={false} />
-        <div className="flex gap-3 pb-5">
-          <Button variant="secondary" fullWidth onClick={() => buildItem(false)}>
-            AGREGAR
-          </Button>
-          <Button
-            fullWidth
-            iconRight={<ArrowRight className="h-4 w-4" />}
-            onClick={() => buildItem(true)}
-          >
-            {mode === "sale" ? "COBRAR" : "REGISTRAR"}
-          </Button>
-        </div>
+        {!descriptionFocused ? (
+          <>
+            <Calculator value={amount} onChange={setAmount} showDisplay={false} />
+            <div className="flex gap-3 pb-5">
+              <Button variant="secondary" fullWidth onClick={() => buildItem(false)}>
+                AGREGAR
+              </Button>
+              <Button
+                fullWidth
+                iconRight={<ArrowRight className="h-4 w-4" />}
+                onClick={() => buildItem(true)}
+              >
+                {mode === "sale" ? "COBRAR" : "REGISTRAR"}
+              </Button>
+            </div>
+          </>
+        ) : null}
       </div>
     </AppDrawer>
   );

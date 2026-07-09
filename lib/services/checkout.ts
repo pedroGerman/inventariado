@@ -102,8 +102,8 @@ export async function finalizeSale(
     total,
     params.paymentType,
     params.paymentMethod,
-    params.toPay ?? total,
-    params.cashReceived,
+    params.paymentType === "pay_later" ? 0 : (params.toPay ?? total),
+    params.paymentType === "pay_later" ? undefined : params.cashReceived,
   );
 
   const businessId = getActiveBusinessId() || getBusiness().id;
@@ -338,8 +338,8 @@ export async function finalizePurchase(
     total,
     params.paymentType,
     params.paymentMethod,
-    params.toPay ?? total,
-    params.cashPaid,
+    params.paymentType === "pay_later" ? 0 : (params.toPay ?? total),
+    params.paymentType === "pay_later" ? undefined : params.cashPaid,
   );
 
   const businessId = getActiveBusinessId() || getBusiness().id;

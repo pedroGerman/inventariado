@@ -184,7 +184,9 @@ export default function OrdenDetallePage() {
             discount={order.discount}
             total={order.total}
           />
-          {order.cash_received != null && (
+          {order.payment_type !== "pay_later" &&
+            order.cash_received != null &&
+            order.cash_received > 0 && (
             <div className="flex flex-col gap-2 border-t border-border/50 pt-3 text-sm">
               <div className="flex justify-between text-muted-foreground">
                 <span>Efectivo recibido</span>
@@ -200,6 +202,14 @@ export default function OrdenDetallePage() {
                   </span>
                 </div>
               )}
+            </div>
+          )}
+          {order.payment_type === "pay_later" && !debt && (
+            <div className="flex justify-between border-t border-border/50 pt-3 text-sm text-warning">
+              <span>Saldo pendiente</span>
+              <span className="shrink-0 text-xs font-bold tabular-nums">
+                {formatCurrency(order.total)}
+              </span>
             </div>
           )}
           {debt && debt.remaining > 0 && (

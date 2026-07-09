@@ -71,6 +71,13 @@ interface AppDrawerProps {
    * keyboard opens — avoids empty white gaps on iOS Safari.
    */
   fixed?: boolean;
+  /**
+   * When false, vaul will not resize/reposition the drawer on keyboard open.
+   * Use for drawers that mix native text inputs with custom keypads.
+   */
+  repositionInputs?: boolean;
+  /** Scroll focused inputs into view inside the drawer. Default true. */
+  scrollFocusedInputs?: boolean;
 }
 
 function AppDrawer({
@@ -82,6 +89,8 @@ function AppDrawer({
   snapPoint = 0.95,
   fitContent = false,
   fixed = true,
+  repositionInputs = true,
+  scrollFocusedInputs = true,
 }: AppDrawerProps) {
   const drawerHeight = `${snapPoint * 100}dvh`;
 
@@ -125,17 +134,21 @@ function AppDrawer({
             : "min-h-0 flex-1 overflow-y-auto",
           className,
         )}
-        onFocusCapture={(event) => {
-          const target = event.target;
-          if (
-            target instanceof HTMLInputElement ||
-            target instanceof HTMLTextAreaElement
-          ) {
-            requestAnimationFrame(() => {
-              target.scrollIntoView({ block: "nearest", inline: "nearest" });
-            });
-          }
-        }}
+        onFocusCapture={
+          scrollFocusedInputs
+            ? (event) => {
+                const target = event.target;
+                if (
+                  target instanceof HTMLInputElement ||
+                  target instanceof HTMLTextAreaElement
+                ) {
+                  requestAnimationFrame(() => {
+                    target.scrollIntoView({ block: "nearest", inline: "nearest" });
+                  });
+                }
+              }
+            : undefined
+        }
       >
         {children}
       </div>
@@ -146,6 +159,7 @@ function AppDrawer({
     <Drawer
       open={open}
       fixed={fixed}
+      repositionInputs={repositionInputs}
       onOpenChange={(isOpen) => {
         if (!isOpen) onClose();
       }}
