@@ -11,13 +11,34 @@ function isPublicAuthRoute(pathname: string) {
   return (
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
+    pathname.startsWith("/olvide-contrasena") ||
     pathname.startsWith("/auth/callback")
   );
+}
+
+function isPasswordRecoveryRoute(pathname: string) {
+  return pathname.startsWith("/recuperar-contrasena");
 }
 
 export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isOnboarding = pathname.startsWith("/onboarding");
+  const authCode = request.nextUrl.searchParams.get("code");
+
+  // Auth emails sometimes land on Site URL /login with ?code= instead of /auth/callback.
+  if (authCode && !pathname.startsWith("/auth/callback")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+
+    const type = request.nextUrl.searchParams.get("type");
+    const hasNext = Boolean(request.nextUrl.searchParams.get("next"));
+
+    if (!hasNext && (type === "recovery" || pathname.startsWith("/login"))) {
+      url.searchParams.set("next", "/recuperar-contrasena");
+    }
+
+    return NextResponse.redirect(url);
+  }
 
   if (isMockMode()) {
     const hasSession =
@@ -93,7 +114,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && !isPublicAuthRoute(pathname) && !isOnboarding && !business) {
+  if (
+    user &&
+    !isPublicAuthRoute(pathname) &&
+    !isOnboarding &&
+    !isPasswordRecoveryRoute(pathname) &&
+    !business
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/onboarding";
     return NextResponse.redirect(url);

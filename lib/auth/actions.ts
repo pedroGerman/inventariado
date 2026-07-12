@@ -72,15 +72,12 @@ export async function signup(formData: FormData) {
   }
 
   const supabase = await createClient();
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
-    "http://localhost:3000";
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: { name },
-      emailRedirectTo: `${siteUrl}/auth/callback`,
+      emailRedirectTo: `${getSiteUrl()}/auth/callback`,
     },
   });
 
@@ -99,6 +96,84 @@ export async function signup(formData: FormData) {
   return {
     success:
       "Cuenta creada. Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.",
+  };
+}
+
+function getSiteUrl() {
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+    "http://localhost:3000"
+  );
+}
+
+export async function requestPasswordReset(formData: FormData) {
+  const email = (formData.get("email") as string)?.trim();
+
+  if (!email) {
+    return { error: "El correo es obligatorio." };
+  }
+
+  if (isMockMode()) {
+    return {
+      error: "La recuperación de contraseña no está disponible en modo demo.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${getSiteUrl()}/auth/callback?next=/recuperar-contrasena`,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {
+    success:
+      "Si existe una cuenta con ese correo, te enviamos un enlace para restablecer tu contraseña.",
+  };
+}
+
+export async function updatePasswordFromRecovery(formData: FormData) {
+  const newPassword = formData.get("newPassword") as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  if (isMockMode()) {
+    return {
+      error: "La recuperación de contraseña no está disponible en modo demo.",
+    };
+  }
+
+  if (!isPasswordValid(newPassword)) {
+    return { error: "La nueva contraseña no cumple los requisitos." };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { error: "Las contraseñas no coinciden." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return {
+      error:
+        "El enlace de recuperación no es válido o expiró. Solicita uno nuevo.",
+    };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await supabase.auth.signOut();
+
+  return {
+    success: "Tu contraseña se actualizó. Ya puedes iniciar sesión.",
   };
 }
 
