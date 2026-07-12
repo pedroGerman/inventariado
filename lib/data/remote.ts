@@ -141,6 +141,7 @@ export async function remoteUpsertProduct(product: Product): Promise<void> {
       sale_price: product.sale_price,
       cost_price: product.cost_price,
       stock: product.stock,
+      min_stock: product.min_stock,
       image_url: product.image_url,
       active: product.active,
       created_at: product.created_at,
@@ -214,7 +215,7 @@ export async function remoteAdjustStock(
 
   if (fetchError) throw new Error(fetchError.message);
 
-  const nextStock = Math.max(0, Number(data.stock) + delta);
+  const nextStock = Number(data.stock) + delta;
   const { error } = await client
     .from("products")
     .update({ stock: nextStock })

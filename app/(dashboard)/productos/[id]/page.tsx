@@ -27,6 +27,7 @@ import {
   uploadPlatformImage,
 } from "@/lib/storage";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
+import { DEFAULT_MIN_STOCK } from "@/lib/utils/stock";
 import type { Category, Product, ProductType } from "@/lib/types/database";
 
 export default function ProductoFormPage() {
@@ -50,6 +51,9 @@ export default function ProductoFormPage() {
   const [categoryId, setCategoryId] = useState(() => existing?.category_id ?? "");
   const [stock, setStock] = useState(() =>
     existing ? String(existing.stock) : "0",
+  );
+  const [minStock, setMinStock] = useState(() =>
+    existing ? String(existing.min_stock) : String(DEFAULT_MIN_STOCK),
   );
   const [imageUrl, setImageUrl] = useState<string | null>(
     () => existing?.image_url ?? null,
@@ -95,6 +99,7 @@ export default function ProductoFormPage() {
     setCostPrice(String(product.cost_price));
     setCategoryId(categoryExists ? cid : "");
     setStock(String(product.stock));
+    setMinStock(String(product.min_stock ?? DEFAULT_MIN_STOCK));
     setImageUrl(product.image_url);
   }, [id, isNew]);
 
@@ -130,6 +135,8 @@ export default function ProductoFormPage() {
         finalImageUrl = null;
       }
 
+      const parsedStock = Number.parseInt(stock, 10);
+      const parsedMinStock = parseInt(minStock, 10);
       const product: Product = {
         id: entityId,
         business_id: getActiveBusinessId(),
@@ -138,7 +145,11 @@ export default function ProductoFormPage() {
         type,
         sale_price: sale,
         cost_price: cost,
-        stock: parseInt(stock) || 0,
+        stock: Number.isFinite(parsedStock) ? parsedStock : 0,
+        min_stock:
+          Number.isFinite(parsedMinStock) && parsedMinStock >= 0
+            ? parsedMinStock
+            : DEFAULT_MIN_STOCK,
         image_url: finalImageUrl,
         active,
         created_at: existing?.created_at ?? new Date().toISOString(),
@@ -297,9 +308,19 @@ export default function ProductoFormPage() {
           <h2 className="text-sm font-semibold text-card-foreground">Inventario</h2>
           <TextField
             type="number"
+            label="Cantidad actual"
             value={stock}
             onChange={(e) => setStock(e.target.value)}
             placeholder="0"
+          />
+          <TextField
+            type="number"
+            min={0}
+            label="Aviso de stock bajo"
+            helperText="Se muestra el badge cuando la cantidad llega a este mínimo."
+            value={minStock}
+            onChange={(e) => setMinStock(e.target.value)}
+            placeholder={String(DEFAULT_MIN_STOCK)}
           />
         </section>
 

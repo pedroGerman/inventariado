@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import { ffElevatedMetricSurfaceClass } from "@/lib/utils/ff-surfaces";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
+import { isLowStock, isOutOfStock } from "@/lib/utils/stock";
 import { Badge } from "@/components/ui/Badge";
 import { Package, Plus } from "lucide-react";
 import type { Product } from "@/lib/types/database";
@@ -44,7 +45,8 @@ export function ProductCard({
   }
 
   if (!product) return null;
-  const outOfStock = product.stock === 0;
+  const outOfStock = isOutOfStock(product);
+  const lowStock = isLowStock(product);
 
   const cardClassName = cn(
     ffElevatedMetricSurfaceClass,
@@ -55,11 +57,15 @@ export function ProductCard({
 
   const cardContent = (
     <>
-      {outOfStock && (
+      {outOfStock ? (
         <Badge variant="danger" className="absolute right-2.5 top-2.5 z-10">
           Agotado
         </Badge>
-      )}
+      ) : lowStock ? (
+        <Badge variant="warning" className="absolute right-2.5 top-2.5 z-10">
+          Stock bajo
+        </Badge>
+      ) : null}
       <div className="mb-2 flex h-[88px] w-full items-center justify-center overflow-hidden rounded-xl bg-surface-2 shadow-segmented-track">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -90,12 +96,7 @@ export function ProductCard({
   }
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={outOfStock}
-      className={cardClassName}
-    >
+    <button type="button" onClick={onClick} className={cardClassName}>
       {cardContent}
     </button>
   );

@@ -1,5 +1,6 @@
 import type { Order, Product, Purchase } from "@/lib/types/database";
 import { getDebts, getOrders, getProducts, getPurchases, getCustomers } from "@/lib/mock/db";
+import { isLowStock, isOutOfStock } from "@/lib/utils/stock";
 
 export type StatsPeriod = "day" | "week" | "month";
 
@@ -138,8 +139,8 @@ export function getBusinessStats(): BusinessStats {
   return {
     totalCustomers: customers.length,
     totalProducts: products.filter((p) => p.type === "product").length,
-    outOfStock: products.filter((p) => p.stock === 0).length,
-    lowStock: products.filter((p) => p.stock > 0 && p.stock <= 5).length,
+    outOfStock: products.filter((p) => isOutOfStock(p)).length,
+    lowStock: products.filter((p) => isLowStock(p)).length,
   };
 }
 

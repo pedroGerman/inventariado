@@ -89,6 +89,13 @@ function normalizeSeedCache(raw: Partial<DataCache> | null): DataCache {
   return {
     ...defaults,
     ...raw,
+    products: (raw.products ?? defaults.products).map((product) => ({
+      ...product,
+      min_stock:
+        Number.isFinite(product.min_stock) && product.min_stock >= 0
+          ? product.min_stock
+          : 5,
+    })),
     business: raw.business ?? defaults.business,
     account: raw.account ?? defaults.account,
   };

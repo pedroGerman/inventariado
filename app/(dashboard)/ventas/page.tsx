@@ -23,7 +23,6 @@ export default function VentasPage() {
   const [quickOpen, setQuickOpen] = useState(false);
   const [search, setSearch] = useState("");
   const addItem = useCartStore((s) => s.addItem);
-  const saleItems = useCartStore((s) => s.saleItems);
 
   const categories = getCategories("ventas");
   const pendingCount = getPendingOrders().length;
@@ -39,11 +38,6 @@ export default function VentasPage() {
   }
 
   function handleAddProduct(product: (typeof products)[0]) {
-    if (product.stock <= 0) return;
-    const inCart = saleItems.find(
-      (item) => item.product_id === product.id && item.type === "product",
-    );
-    if ((inCart?.quantity ?? 0) >= product.stock) return;
     addItem(
       {
         id: uid("ci"),

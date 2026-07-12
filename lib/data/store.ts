@@ -445,7 +445,7 @@ export async function adjustStock(
 ): Promise<void> {
   const db = getCache();
   const product = db.products.find((p) => p.id === productId);
-  if (product) product.stock = Math.max(0, product.stock + delta);
+  if (product) product.stock = product.stock + delta;
 
   if (isMockMode()) {
     persistMock();

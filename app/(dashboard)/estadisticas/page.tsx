@@ -3,9 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  ChevronLeft,
-  ChevronRight,
-  ShoppingCart,
   Package,
   Users,
   AlertTriangle,
@@ -13,28 +10,25 @@ import {
 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { DashboardPeriodPicker } from "@/components/dashboard/DashboardPeriodPicker";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
+import { getBusinessStats } from "@/lib/utils/stats";
 import {
-  getConsolidatedStats,
-  getPeriodLabels,
-  getBusinessStats,
-  getTopProducts,
-  getOrdersInPeriod,
-  getPurchasesInPeriod,
-  getActivePeriodLabel,
-  type StatsPeriod,
-} from "@/lib/utils/stats";
+  DEFAULT_DASHBOARD_PERIOD,
+  getConsolidatedStatsForDashboardFilter,
+  getDashboardPeriodLabel,
+  getLeastSoldProductsForDashboardFilter,
+  getOrdersForDashboardFilter,
+  getPurchasesForDashboardFilter,
+  getTopProductsForDashboardFilter,
+  type DashboardPeriodFilter,
+} from "@/lib/utils/dashboardPeriod";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatTime } from "@/lib/utils/date";
 import { cn } from "@/lib/utils/cn";
+import type { Product } from "@/lib/types/database";
 
-const PERIOD_TABS: { id: StatsPeriod; label: string }[] = [
-  { id: "day", label: "Día" },
-  { id: "week", label: "Semana" },
-  { id: "month", label: "Mes" },
-];
+const PERIOD_LIST_PREVIEW = 5;
 
 function SummaryCard({
   title,
@@ -46,7 +40,6 @@ function SummaryCard({
   rows: { label: string; value: string }[];
 }) {
   return (
-    // <Card className="overflow-hidden px-3.5 !gap-3">
     <div className="flex flex-col gap-3 py-1">
       <div className="border- border-slate-100 px-0.5">
         <h3 className={cn("text-sm font-semibold", titleClass)}>{title}</h3>
@@ -58,12 +51,13 @@ function SummaryCard({
             className="flex items-center justify-between px-0.5"
           >
             <span className="text-sm text-slate-600">{row.label}</span>
-            <span className="text-sm shrink-0 font-medium tabular-nums">{row.value}</span>
+            <span className="text-sm shrink-0 font-medium tabular-nums">
+              {row.value}
+            </span>
           </div>
         ))}
       </div>
     </div>
-    // </Card>
   );
 }
 
@@ -85,7 +79,7 @@ function StatCard({
       className={cn(
         "flex !flex-row items-center !py-3 !gap-2.5 px-3.5",
         href &&
-          "transition-[box-shadow,transform] hover:shadow-ff-surface-4 active:scale-[0.99]",
+        "transition-[box-shadow,transform] hover:shadow-ff-surface-4 active:scale-[0.99]",
       )}
     >
       <div className={cn("rounded-xl w-min p-1.5", color)}>
@@ -109,111 +103,202 @@ function StatCard({
   return card;
 }
 
+function ProductSalesList({
+  title,
+  periodLabel,
+  items,
+  emptyMessage,
+}: {
+  title: string;
+  periodLabel: string;
+  items: { product: Product; sold: number; revenue: number }[];
+  emptyMessage: string;
+}) {
+  if (items.length === 0) {
+    return (
+      <Card className="px-3.5">
+        <div className="mb-1 flex flex-col gap-0.5">
+          <h3 className="font-semibold text-sm">{title}</h3>
+          <p className="text-xs text-slate-500">{periodLabel}</p>
+        </div>
+        <p className="py-4 text-center text-sm text-slate-400">{emptyMessage}</p>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 px-1">
+      <div className="flex flex-col gap-0.5">
+        <h2 className="text-base font-semibold text-card-foreground">{title}</h2>
+        <p className="text-xs text-slate-500">{periodLabel}</p>
+      </div>
+      <div className="divide-y divide-border/40">
+        {items.map(({ product, sold, revenue }) => (
+          <div
+            key={product.id}
+            className="flex items-center justify-between gap-3 py-3 text-sm"
+          >
+            <span className="text-card-foreground">
+              {product.name}{" "}
+              <span className="text-muted-foreground">×{sold}</span>
+            </span>
+            <span className="shrink-0 text-xs font-medium tabular-nums text-slate-600">
+              {formatCurrency(revenue)}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PeriodTransactionList({
+  title,
+  periodLabel,
+  viewAllHref,
+  items,
+  emptyMessage,
+}: {
+  title: string;
+  periodLabel: string;
+  viewAllHref: string;
+  items: {
+    id: string;
+    href: string;
+    label: string;
+    total: number;
+    createdAt: string;
+  }[];
+  emptyMessage: string;
+}) {
+  const sorted = [...items].sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
+  const preview = sorted.slice(0, PERIOD_LIST_PREVIEW);
+  const remaining = Math.max(sorted.length - preview.length, 0);
+
+  if (sorted.length === 0) {
+    return (
+      <Card className="px-3.5">
+        <div className="mb-1 flex items-start justify-between gap-3">
+          <div className="flex flex-col gap-0.5">
+            <h3 className="font-semibold text-sm">{title}</h3>
+            <p className="text-xs text-slate-500">{periodLabel}</p>
+          </div>
+          <Link
+            href={viewAllHref}
+            className="shrink-0 text-sm font-medium text-primary"
+          >
+            Ver todas
+          </Link>
+        </div>
+        <p className="py-4 text-center text-sm text-slate-400">{emptyMessage}</p>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 px-1">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-base font-semibold text-card-foreground">
+            {title}
+          </h2>
+          <p className="text-xs text-slate-500">{periodLabel}</p>
+        </div>
+        <Link
+          href={viewAllHref}
+          className="shrink-0 pt-0.5 text-sm font-medium text-primary"
+        >
+          Ver todas
+        </Link>
+      </div>
+      <div className="divide-y divide-border/40">
+        {preview.map((item) => (
+          <Link
+            key={item.id}
+            href={item.href}
+            className="flex items-center justify-between gap-3 py-3 text-sm"
+          >
+            <span className="font-medium text-card-foreground">{item.label}</span>
+            <span className="shrink-0 text-xs font-medium tabular-nums text-slate-600">
+              {formatCurrency(item.total)} · {formatTime(item.createdAt)}
+            </span>
+          </Link>
+        ))}
+      </div>
+      {remaining > 0 ? (
+        <p className="pt-1 text-center text-xs text-slate-500">
+          {remaining} más
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export default function EstadisticasPage() {
   useMockDBRefresh();
-  const [period, setPeriod] = useState<StatsPeriod>("week");
-  const [rangeOffset, setRangeOffset] = useState(0);
+  const [periodFilter, setPeriodFilter] = useState<DashboardPeriodFilter>(
+    DEFAULT_DASHBOARD_PERIOD,
+  );
 
-  const stats = getConsolidatedStats(period, rangeOffset);
+  const periodLabel = getDashboardPeriodLabel(periodFilter);
+  const stats = getConsolidatedStatsForDashboardFilter(periodFilter);
   const businessStats = getBusinessStats();
-  const topProducts = getTopProducts(period, rangeOffset);
-  const ordersInPeriod = getOrdersInPeriod(period, rangeOffset);
-  const purchasesInPeriod = getPurchasesInPeriod(period, rangeOffset);
-  const [currentLabel, previousLabel] = getPeriodLabels(period);
-  const activePeriodLabel = getActivePeriodLabel(period, rangeOffset);
-
-  function handlePeriodChange(next: StatsPeriod) {
-    setPeriod(next);
-    setRangeOffset(0);
-  }
+  const topProducts = getTopProductsForDashboardFilter(periodFilter, 4);
+  const leastSoldProducts = getLeastSoldProductsForDashboardFilter(
+    periodFilter,
+    4,
+  );
+  const ordersInPeriod = getOrdersForDashboardFilter(periodFilter);
+  const purchasesInPeriod = getPurchasesForDashboardFilter(periodFilter);
 
   return (
     <>
       <Header title="Estadísticas" showBack backHref="/" />
 
       <div className="flex flex-col gap-3 px-4 py-4 pb-8">
-        {/* Punto de venta */}
-        {/* <Card>
-          <p className="text-sm font-semibold text-slate-800">Punto de venta</p>
-          <p className="mt-0.5 text-xl font-bold text-slate-900">Principal</p>
-        </Card> */}
-
-        {/* Consolidado — diseño del cliente */}
         <div>
-          <h2 className="mb-3 text-base font-bold text-slate-900">Consolidado</h2>
+          <h2 className="mb-3 text-base font-bold text-slate-900">
+            Consolidado
+          </h2>
 
-          <SegmentedControl
-            aria-label="Periodo"
-            className="mb-3"
-            value={period}
-            onChange={handlePeriodChange}
-            options={PERIOD_TABS.map((tab) => ({
-              value: tab.id,
-              label: tab.label,
-            }))}
+          <DashboardPeriodPicker
+            value={periodFilter}
+            onChange={setPeriodFilter}
+            className="mb-4"
           />
-
-          <div className="mb-4 flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="shrink-0 rounded-full"
-              disabled={rangeOffset >= 1}
-              onClick={() => setRangeOffset((o) => Math.min(o + 1, 1))}
-              aria-label="Periodo anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-
-            <SegmentedControl
-              aria-label="Rango del periodo"
-              className="flex-1"
-              size="sm"
-              value={rangeOffset}
-              onChange={setRangeOffset}
-              options={[
-                { value: 0, label: currentLabel },
-                { value: 1, label: previousLabel },
-              ]}
-            />
-
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              className="shrink-0 rounded-full"
-              disabled={rangeOffset <= 0}
-              onClick={() => setRangeOffset((o) => Math.max(o - 1, 0))}
-              aria-label="Periodo siguiente"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
 
         <div className="flex flex-col gap-10">
           <div className="flex flex-col gap-10">
             <SummaryCard
               title="Ventas"
-              // titleClass="text-primary"
               rows={[
                 { label: "Total", value: formatCurrency(stats.salesTotal) },
-                { label: "Por cobrar", value: formatCurrency(stats.pendingCollect) },
+                {
+                  label: "Por cobrar",
+                  value: formatCurrency(stats.pendingCollect),
+                },
               ]}
             />
 
             <SummaryCard
               title="Gastos/Compras"
-              // titleClass="text-danger"
               rows={[
-                { label: "Total", value: formatCurrency(stats.purchasesTotal) },
-                { label: "Por pagar", value: formatCurrency(stats.pendingPay) },
+                {
+                  label: "Total",
+                  value: formatCurrency(stats.purchasesTotal),
+                },
+                {
+                  label: "Por pagar",
+                  value: formatCurrency(stats.pendingPay),
+                },
               ]}
             />
           </div>
 
-          {/* Secciones adicionales (contenido previo) */}
           <div className="flex flex-col gap-7">
             <div className="bg-gradient-to-r h-[15vh] rounded-xl flex flex-col justify-center from-primary to-green-600 px-3.5 text-white">
               <div className="flex items-center gap-2">
@@ -226,7 +311,9 @@ export default function EstadisticasPage() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold text-slate-500">Inventario y clientes</h2>
+              <h2 className="text-sm font-semibold text-slate-500">
+                Inventario y clientes
+              </h2>
               <div className="grid grid-cols-2 gap-3">
                 <StatCard
                   icon={Package}
@@ -257,16 +344,7 @@ export default function EstadisticasPage() {
               </div>
             </div>
 
-
             <div className="flex flex-col gap-3">
-              {/* <div>
-          <h2 className="text-sm font-semibold text-slate-500">
-            Deudas
-          </h2>
-          <Link href="/deudas" className="block text-sm text-primary">
-            Ver deudas
-          </Link>
-          </div> */}
               <Card className="px-3.5 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold text-sm">Deudas</h3>
@@ -288,105 +366,52 @@ export default function EstadisticasPage() {
                     </p>
                   </div>
                 </div>
-
               </Card>
             </div>
 
-            {topProducts.length > 0 ? (
-              <div className="flex flex-col gap-2 px-1">
-                <div className="flex flex-col gap-0.5">
-                  <h2 className="text-base font-semibold text-card-foreground">
-                    Productos más vendidos
-                  </h2>
-                  <p className="text-xs text-slate-500">{activePeriodLabel}</p>
-                </div>
-                <div className="divide-y divide-border/40">
-                  {topProducts.map(({ product, sold, revenue }) => (
-                    <div
-                      key={product.id}
-                      className="flex items-center justify-between gap-3 py-3 text-sm"
-                    >
-                      <span className="text-card-foreground">
-                        {product.name}{" "}
-                        <span className="text-muted-foreground">×{sold}</span>
-                      </span>
-                      <span className="shrink-0 text-xs font-medium tabular-nums text-slate-600">
-                        {formatCurrency(revenue)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <Card className="px-3.5">
-                <div className="mb-1 flex flex-col gap-0.5">
-                  <h3 className="font-semibold text-sm">Productos más vendidos</h3>
-                  <p className="text-xs text-slate-500">{activePeriodLabel}</p>
-                </div>
-                <p className="py-4 text-center text-sm text-slate-400">
-                  Sin ventas en {activePeriodLabel.toLowerCase()}
-                </p>
-              </Card>
-            )}
+            <section className="flex flex-col gap-10">
+              <ProductSalesList
+                title="Productos más vendidos"
+                periodLabel={periodLabel}
+                items={topProducts}
+                emptyMessage={`Sin ventas en ${periodLabel.toLowerCase()}`}
+              />
 
-            {ordersInPeriod.length > 0 ? (
-              <div className="flex flex-col gap-2 px-1">
-                <div className="flex flex-col gap-0.5">
-                  <h2 className="text-base font-semibold text-card-foreground">
-                    Ventas del periodo
-                  </h2>
-                  <p className="text-xs text-slate-500">{activePeriodLabel}</p>
-                </div>
-                <div className="divide-y divide-border/40">
-                  {ordersInPeriod.map((o) => (
-                    <Link
-                      key={o.id}
-                      href={`/ordenes/${o.id}`}
-                      className="flex items-center justify-between gap-3 py-3 text-sm"
-                    >
-                      <span className="font-medium text-card-foreground">
-                        {o.order_number}
-                      </span>
-                      <span className="shrink-0 text-xs font-medium tabular-nums text-slate-600">
-                        {formatCurrency(o.total)} · {formatTime(o.created_at)}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <Card className="px-3.5">
-                <div className="mb-1 flex flex-col gap-0.5">
-                  <h3 className="font-semibold text-sm">Ventas del periodo</h3>
-                  <p className="text-xs text-slate-500">{activePeriodLabel}</p>
-                </div>
-                <p className="py-4 text-center text-sm text-slate-400">
-                  Sin ventas en {activePeriodLabel.toLowerCase()}
-                </p>
-              </Card>
-            )}
+              <ProductSalesList
+                title="Productos menos vendidos"
+                periodLabel={periodLabel}
+                items={leastSoldProducts}
+                emptyMessage="No hay productos para mostrar"
+              />
 
-            {purchasesInPeriod.length > 0 && (
-              <Card className="px-3.5 flex flex-col gap-3">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="h-4 w-4 text-danger" />
-                  <h3 className="font-semibold">Compras del periodo</h3>
-                  <p className="text-xs text-slate-500">{activePeriodLabel}</p>
-                </div>
-                {purchasesInPeriod.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/compras/ordenes/${p.id}`}
-                    className="flex justify-between border-b border-slate-50 py-2 text-sm last:border-0 hover:text-danger"
-                  >
-                    <span>{p.purchase_number}</span>
-                    <span>
-                      {formatCurrency(p.total)} · {formatTime(p.created_at)}
-                    </span>
-                  </Link>
-                ))}
-              </Card>
-            )}
+              <PeriodTransactionList
+                title="Ventas del periodo"
+                periodLabel={periodLabel}
+                viewAllHref="/ordenes"
+                emptyMessage={`Sin ventas en ${periodLabel.toLowerCase()}`}
+                items={ordersInPeriod.map((order) => ({
+                  id: order.id,
+                  href: `/ordenes/${order.id}`,
+                  label: order.order_number,
+                  total: order.total,
+                  createdAt: order.created_at,
+                }))}
+              />
+
+              <PeriodTransactionList
+                title="Compras del periodo"
+                periodLabel={periodLabel}
+                viewAllHref="/ordenes?tab=purchase"
+                emptyMessage={`Sin compras en ${periodLabel.toLowerCase()}`}
+                items={purchasesInPeriod.map((purchase) => ({
+                  id: purchase.id,
+                  href: `/compras/ordenes/${purchase.id}`,
+                  label: purchase.purchase_number,
+                  total: purchase.total,
+                  createdAt: purchase.created_at,
+                }))}
+              />
+            </section>
           </div>
         </div>
       </div>

@@ -11,6 +11,7 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { getProducts } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
+import { isLowStock, isOutOfStock } from "@/lib/utils/stock";
 import { cn } from "@/lib/utils/cn";
 
 type StockFilter = "all" | "low" | "out";
@@ -58,8 +59,8 @@ function ProductosPageContent() {
         stockFilter === "all"
           ? true
           : stockFilter === "out"
-            ? p.stock === 0
-            : p.stock > 0 && p.stock <= 5;
+            ? isOutOfStock(p)
+            : isLowStock(p);
       return matchesSearch && matchesStock;
     });
   }, [products, search, stockFilter]);
