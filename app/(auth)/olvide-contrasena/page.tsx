@@ -1,53 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { login } from "@/lib/auth/actions";
+import { useState } from "react";
+import { requestPasswordReset } from "@/lib/auth/actions";
 import { isMockMode } from "@/lib/config";
-import { clearStaleLocalData } from "@/lib/client/clearStaleLocalData";
 import { AuthFooterLink, AuthScreen } from "@/components/auth/AuthScreen";
-import { PasswordField } from "@/components/auth/PasswordField";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Input";
 
-export default function LoginPage() {
+export default function OlvideContrasenaPage() {
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const mock = isMockMode();
 
-  useEffect(() => {
-    if (!mock) clearStaleLocalData();
-  }, [mock]);
-
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (loading) return;
+    if (loading || success) return;
 
     setLoading(true);
     setError(null);
+    setSuccess(null);
+
     const formData = new FormData(e.currentTarget);
-    const result = await login(formData);
+    const result = await requestPasswordReset(formData);
+
     if (result?.error) {
       setError(result.error);
       setLoading(false);
+      return;
     }
+
+    setSuccess(
+      result?.success ??
+        "Si existe una cuenta con ese correo, te enviamos un enlace para restablecer tu contraseña.",
+    );
+    setLoading(false);
   }
 
   return (
     <AuthScreen
-      title="Bienvenido de nuevo"
-      subtitle="Inicia sesión para continuar"
+      title="Recuperar contraseña"
+      subtitle="Te enviaremos un enlace a tu correo"
+      showBack
+      backHref="/login"
       footer={
         <AuthFooterLink
-          prompt="¿No tienes cuenta?"
-          linkLabel="Crear cuenta"
-          href="/signup"
+          prompt="¿La recordaste?"
+          linkLabel="Volver a iniciar sesión"
+          href="/login"
         />
       }
     >
       {mock && (
         <div className="mb-5 rounded-xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          Modo demo — cualquier email y contraseña funcionan.
+          Modo demo — la recuperación por correo no está disponible.
         </div>
       )}
 
@@ -59,27 +65,19 @@ export default function LoginPage() {
           label="Correo"
           required
           autoComplete="email"
-          defaultValue={mock ? "demo@pos.app" : ""}
           placeholder="tu@email.com"
+          disabled={!!success || mock}
         />
-
-        <PasswordField
-          defaultValue={mock ? "demo123" : ""}
-          autoComplete="current-password"
-        />
-
-        <div className="-mt-2 text-right">
-          <Link
-            href="/olvide-contrasena"
-            className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-card-foreground hover:underline"
-          >
-            ¿Olvidaste tu contraseña?
-          </Link>
-        </div>
 
         {error && (
           <p className="rounded-xl bg-red-50 px-4 py-2.5 text-sm text-destructive">
             {error}
+          </p>
+        )}
+
+        {success && (
+          <p className="rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm text-[var(--button-success)]">
+            {success}
           </p>
         )}
 
@@ -88,10 +86,10 @@ export default function LoginPage() {
           variant="default"
           fullWidth
           loading={loading}
-          disabled={loading}
-          className="rounded-xl"
+          disabled={loading || !!success || mock}
+          className="rounded-xl disabled:opacity-40"
         >
-          Iniciar sesión
+          Enviar enlace
         </Button>
       </form>
     </AuthScreen>
