@@ -33,12 +33,12 @@ export function DashboardMetricCard({
     ffElevatedMetricSurfaceClass,
     "flex flex-col px-3 pb-4 pt-2.5",
     href &&
-      "transition-[box-shadow,transform] active:scale-[0.99]",
+    "transition-[box-shadow,transform] active:scale-[0.99]",
     className,
   );
 
   const content = (
-    <>
+    <div className="flex flex-col justify-between">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1">
           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
@@ -67,18 +67,20 @@ export function DashboardMetricCard({
           </button>
         ) : null}
       </div>
-      <p
-        className={cn(
-          "mt-3 text-lg font-medium tabular-nums leading-tight text-slate-900",
-          valueClassName,
-        )}
-      >
-        {value}
-      </p>
-      {sublabel ? (
-        <p className="mt-1 text-xs text-muted-foreground">{sublabel}</p>
-      ) : null}
-    </>
+      <div className="flex flex-col gap-1 mt-3">
+        <p
+          className={cn(
+            "text-lg font-medium tabular-nums leading-tight text-slate-900",
+            valueClassName,
+          )}
+        >
+          {value}
+        </p>
+        {sublabel ? (
+          <p className="text-xs text-muted-foreground">{sublabel}</p>
+        ) : null}
+      </div>
+    </div>
   );
 
   if (href) {

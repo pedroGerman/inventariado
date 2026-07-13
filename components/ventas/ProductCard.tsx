@@ -51,18 +51,26 @@ export function ProductCard({
   const cardClassName = cn(
     ffElevatedMetricSurfaceClass,
     "relative flex flex-col p-2 text-left",
+    readOnly && "cursor-pointer",
     !readOnly && "transition-[box-shadow,transform] active:scale-[0.98]",
-    outOfStock && "opacity-60",
+    // Dim only when selecting for sale/purchase — keep home links fully tappable.
+    outOfStock && !readOnly && "opacity-60",
   );
 
   const cardContent = (
     <>
       {outOfStock ? (
-        <Badge variant="danger" className="absolute right-2.5 top-2.5 z-10">
+        <Badge
+          variant="danger"
+          className="pointer-events-none absolute right-2.5 top-2.5 z-10"
+        >
           Agotado
         </Badge>
       ) : lowStock ? (
-        <Badge variant="warning" className="absolute right-2.5 top-2.5 z-10">
+        <Badge
+          variant="warning"
+          className="pointer-events-none absolute right-2.5 top-2.5 z-10"
+        >
           Stock bajo
         </Badge>
       ) : null}
@@ -89,7 +97,11 @@ export function ProductCard({
 
   if (readOnly) {
     return (
-      <Link href={`/productos/${product.id}`} className={cardClassName}>
+      <Link
+        href={`/productos/${product.id}`}
+        className={cardClassName}
+        aria-label={`Ver ${product.name}`}
+      >
         {cardContent}
       </Link>
     );
