@@ -1,6 +1,10 @@
 import type { Product } from "@/lib/types/database";
-import { getDebts, getOrders, getProducts } from "@/lib/mock/db";
-import { getDateRange, type StatsPeriod } from "@/lib/utils/stats";
+import { getDebts, getOrders, getProducts, getPurchases } from "@/lib/mock/db";
+import {
+  getDateRange,
+  type ConsolidatedStats,
+  type StatsPeriod,
+} from "@/lib/utils/stats";
 
 export const DASHBOARD_PERIOD_PRESETS = [
   { id: "all", label: "A lo largo" },
@@ -254,30 +258,101 @@ export function getSalesSummaryForDashboardFilter(
 export function getTopProductsForDashboardFilter(
   filter: DashboardPeriodFilter,
   limit = 6,
-): { product: Product; sold: number }[] {
+): { product: Product; sold: number; revenue: number }[] {
   const orders = getOrdersForDashboardFilter(filter);
-  const counts = new Map<string, number>();
+  const counts = new Map<string, { sold: number; revenue: number }>();
 
   orders.forEach((order) => {
     order.items?.forEach((item) => {
       if (item.product_id) {
-        counts.set(
-          item.product_id,
-          (counts.get(item.product_id) ?? 0) + item.quantity,
-        );
+        const current = counts.get(item.product_id) ?? { sold: 0, revenue: 0 };
+        counts.set(item.product_id, {
+          sold: current.sold + item.quantity,
+          revenue: current.revenue + item.total_price,
+        });
       }
     });
   });
 
   const products = getProducts();
   return [...counts.entries()]
-    .map(([id, sold]) => ({
+    .map(([id, { sold, revenue }]) => ({
       product: products.find((p) => p.id === id)!,
       sold,
+      revenue,
     }))
     .filter((entry) => entry.product)
     .sort((a, b) => b.sold - a.sold)
     .slice(0, limit);
+}
+
+export function getLeastSoldProductsForDashboardFilter(
+  filter: DashboardPeriodFilter,
+  limit = 4,
+): { product: Product; sold: number; revenue: number }[] {
+  const orders = getOrdersForDashboardFilter(filter);
+  const counts = new Map<string, { sold: number; revenue: number }>();
+
+  orders.forEach((order) => {
+    order.items?.forEach((item) => {
+      if (item.product_id) {
+        const current = counts.get(item.product_id) ?? { sold: 0, revenue: 0 };
+        counts.set(item.product_id, {
+          sold: current.sold + item.quantity,
+          revenue: current.revenue + item.total_price,
+        });
+      }
+    });
+  });
+
+  const products = getProducts().filter((p) => p.type === "product");
+
+  return products
+    .map((product) => {
+      const stats = counts.get(product.id) ?? { sold: 0, revenue: 0 };
+      return { product, sold: stats.sold, revenue: stats.revenue };
+    })
+    .sort((a, b) => a.sold - b.sold || a.revenue - b.revenue || a.product.name.localeCompare(b.product.name))
+    .slice(0, limit);
+}
+
+export function getPurchasesForDashboardFilter(filter: DashboardPeriodFilter) {
+  const { start, end } = resolveDashboardPeriodRange(filter);
+  return getPurchases().filter((purchase) => {
+    if (purchase.status !== "confirmed") return false;
+    if (!start || !end) return true;
+    return (
+      inRange(purchase.created_at, start, end) ||
+      inRangeDate(purchase.date, start, end)
+    );
+  });
+}
+
+export function getConsolidatedStatsForDashboardFilter(
+  filter: DashboardPeriodFilter,
+): ConsolidatedStats {
+  const orders = getOrdersForDashboardFilter(filter);
+  const purchases = getPurchasesForDashboardFilter(filter);
+  const debts = getDebts();
+
+  const salesTotal = orders.reduce((sum, order) => sum + order.total, 0);
+  const purchasesTotal = purchases.reduce(
+    (sum, purchase) => sum + purchase.total,
+    0,
+  );
+  const pendingCollect = debts
+    .filter((debt) => debt.kind === "collect")
+    .reduce((sum, debt) => sum + debt.remaining, 0);
+  const pendingPay = debts
+    .filter((debt) => debt.kind === "pay")
+    .reduce((sum, debt) => sum + debt.remaining, 0);
+
+  return {
+    salesTotal,
+    pendingCollect,
+    purchasesTotal,
+    pendingPay,
+  };
 }
 
 export { MONTHS_FULL_ES };

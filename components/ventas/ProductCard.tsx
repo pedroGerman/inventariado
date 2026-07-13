@@ -4,6 +4,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils/cn";
 import { ffElevatedMetricSurfaceClass } from "@/lib/utils/ff-surfaces";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
+import { isLowStock, isOutOfStock } from "@/lib/utils/stock";
 import { Badge } from "@/components/ui/Badge";
 import { Package, Plus } from "lucide-react";
 import type { Product } from "@/lib/types/database";
@@ -44,22 +45,35 @@ export function ProductCard({
   }
 
   if (!product) return null;
-  const outOfStock = product.stock === 0;
+  const outOfStock = isOutOfStock(product);
+  const lowStock = isLowStock(product);
 
   const cardClassName = cn(
     ffElevatedMetricSurfaceClass,
     "relative flex flex-col p-2 text-left",
+    readOnly && "cursor-pointer",
     !readOnly && "transition-[box-shadow,transform] active:scale-[0.98]",
-    outOfStock && "opacity-60",
+    // Dim only when selecting for sale/purchase — keep home links fully tappable.
+    outOfStock && !readOnly && "opacity-60",
   );
 
   const cardContent = (
     <>
-      {outOfStock && (
-        <Badge variant="danger" className="absolute right-2.5 top-2.5 z-10">
+      {outOfStock ? (
+        <Badge
+          variant="danger"
+          className="pointer-events-none absolute right-2.5 top-2.5 z-10"
+        >
           Agotado
         </Badge>
-      )}
+      ) : lowStock ? (
+        <Badge
+          variant="warning"
+          className="pointer-events-none absolute right-2.5 top-2.5 z-10"
+        >
+          Stock bajo
+        </Badge>
+      ) : null}
       <div className="mb-2 flex h-[88px] w-full items-center justify-center overflow-hidden rounded-xl bg-surface-2 shadow-segmented-track">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -83,19 +97,18 @@ export function ProductCard({
 
   if (readOnly) {
     return (
-      <Link href={`/productos/${product.id}`} className={cardClassName}>
+      <Link
+        href={`/productos/${product.id}`}
+        className={cardClassName}
+        aria-label={`Ver ${product.name}`}
+      >
         {cardContent}
       </Link>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={outOfStock}
-      className={cardClassName}
-    >
+    <button type="button" onClick={onClick} className={cardClassName}>
       {cardContent}
     </button>
   );

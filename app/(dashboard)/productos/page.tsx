@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight, Package, Plus, Search } from "lucide-react";
+import { ChevronRight, Package, Plus, Search, Wallet } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { TextField } from "@/components/ui/Input";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { DashboardMetricCard } from "@/components/dashboard/DashboardMetricCard";
 import { getProducts } from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
+import { isLowStock, isOutOfStock } from "@/lib/utils/stock";
 import { cn } from "@/lib/utils/cn";
 
 type StockFilter = "all" | "low" | "out";
@@ -51,6 +53,16 @@ function ProductosPageContent() {
 
   const products = getProducts().filter((p) => p.type === tab);
 
+  const inventorySummary = useMemo(() => {
+    const uniqueProducts = products.length;
+    const patrimonio = products.reduce((total, product) => {
+      const units = Math.max(0, product.stock);
+      return total + units * product.cost_price;
+    }, 0);
+
+    return { uniqueProducts, patrimonio };
+  }, [products]);
+
   const filtered = useMemo(() => {
     return products.filter((p) => {
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -58,11 +70,13 @@ function ProductosPageContent() {
         stockFilter === "all"
           ? true
           : stockFilter === "out"
-            ? p.stock === 0
-            : p.stock > 0 && p.stock <= 5;
+            ? isOutOfStock(p)
+            : isLowStock(p);
       return matchesSearch && matchesStock;
     });
   }, [products, search, stockFilter]);
+
+  const summaryLabel = tab === "product" ? "Productos" : "Insumos";
 
   return (
     <>
@@ -93,6 +107,23 @@ function ProductosPageContent() {
             { value: "supply", label: "Insumos" },
           ]}
         />
+
+        <div className="grid grid-cols-2 gap-3">
+          <DashboardMetricCard
+            icon={Wallet}
+            label="Patrimonio"
+            value={formatCurrency(inventorySummary.patrimonio)}
+            sublabel="A costo de compra"
+            valueClassName="text-[15px]"
+          />
+          <DashboardMetricCard
+            icon={Package}
+            label={summaryLabel}
+            value={String(inventorySummary.uniqueProducts)}
+            sublabel="Únicos en inventario"
+            valueClassName="text-[15px]"
+          />
+        </div>
 
         <TextField
           value={search}

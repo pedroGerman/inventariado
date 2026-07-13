@@ -7,7 +7,6 @@ import { CartPendingActions } from "@/components/ventas/CartPendingActions";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
 import { useCartStore } from "@/lib/store/cart";
-import { getProducts } from "@/lib/mock/db";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 
 export default function VentasCarritoPage() {
@@ -21,12 +20,6 @@ export default function VentasCarritoPage() {
   const itemCount = getItemCount("sale");
   const total = getTotal("sale");
   const items = saleItems;
-  const products = getProducts();
-
-  function getMaxQuantity(productId: string | null) {
-    if (!productId) return null;
-    return products.find((p) => p.id === productId)?.stock ?? null;
-  }
 
   return (
     <>
@@ -54,7 +47,6 @@ export default function VentasCarritoPage() {
             <CartItemRow
               key={item.id}
               item={item}
-              maxQuantity={getMaxQuantity(item.product_id)}
               onUpdateQty={(id, qty) => updateQuantity(id, qty, "sale")}
               onRemove={(id) => removeItem(id, "sale")}
             />

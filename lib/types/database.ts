@@ -74,6 +74,8 @@ export interface Product {
   sale_price: number;
   cost_price: number;
   stock: number;
+  /** Minimum quantity that triggers the "stock bajo" badge. */
+  min_stock: number;
   image_url: string | null;
   active: boolean;
   created_at: string;

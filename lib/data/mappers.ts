@@ -18,6 +18,8 @@ function num(value: unknown): number {
 }
 
 export function mapProduct(row: Record<string, unknown>): Product {
+  const stockValue = Number(row.stock);
+  const minStock = Number(row.min_stock);
   return {
     id: String(row.id),
     business_id: String(row.business_id),
@@ -26,7 +28,9 @@ export function mapProduct(row: Record<string, unknown>): Product {
     type: row.type as Product["type"],
     sale_price: num(row.sale_price),
     cost_price: num(row.cost_price),
-    stock: Number(row.stock) || 0,
+    stock: Number.isFinite(stockValue) ? stockValue : 0,
+    min_stock:
+      Number.isFinite(minStock) && minStock >= 0 ? minStock : 5,
     image_url: row.image_url ? String(row.image_url) : null,
     active: Boolean(row.active),
     created_at: String(row.created_at),
