@@ -48,8 +48,16 @@ export async function fetchRemoteCache(): Promise<DataCache> {
   ] = await Promise.all([
     client.from("products").select("*").eq("business_id", businessId),
     client.from("categories").select("*").eq("business_id", businessId),
-    client.from("customers").select("*").eq("business_id", businessId),
-    client.from("suppliers").select("*").eq("business_id", businessId),
+    client
+      .from("customers")
+      .select("*")
+      .eq("business_id", businessId)
+      .order("name", { ascending: true }),
+    client
+      .from("suppliers")
+      .select("*")
+      .eq("business_id", businessId)
+      .order("name", { ascending: true }),
     client
       .from("orders")
       .select("*, order_items(*)")
