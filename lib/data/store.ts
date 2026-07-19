@@ -148,11 +148,15 @@ export function getCategory(id: string): Category | undefined {
 }
 
 export function getCustomers(): Customer[] {
-  return getCache().customers;
+  return [...getCache().customers].sort((a, b) =>
+    a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+  );
 }
 
 export function getSuppliers(): Supplier[] {
-  return getCache().suppliers;
+  return [...getCache().suppliers].sort((a, b) =>
+    a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+  );
 }
 
 export function getOrders(): Order[] {
