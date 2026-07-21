@@ -15,7 +15,6 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const mock = isMockMode();
 
@@ -26,18 +25,14 @@ export default function SignupPage() {
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!canSubmit || success || loading) return;
+    if (!canSubmit || loading) return;
 
     setLoading(true);
     setError(null);
-    setSuccess(null);
     const formData = new FormData(e.currentTarget);
     const result = await signup(formData);
     if (result?.error) {
       setError(result.error);
-      setLoading(false);
-    } else if (result?.success) {
-      setSuccess(result.success);
       setLoading(false);
     }
   }
@@ -101,18 +96,12 @@ export default function SignupPage() {
           </p>
         )}
 
-        {success && (
-          <p className="rounded-xl bg-green-50 border border-green-200 px-4 py-2.5 text-sm text-[var(--button-success)]">
-            {success}
-          </p>
-        )}
-
         <Button
           type="submit"
           variant="default"
           fullWidth
           loading={loading}
-          disabled={!canSubmit || !!success || loading}
+          disabled={!canSubmit || loading}
           className="rounded-xl disabled:opacity-40"
         >
           Crear cuenta

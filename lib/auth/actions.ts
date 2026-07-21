@@ -77,7 +77,6 @@ export async function signup(formData: FormData) {
     password,
     options: {
       data: { name },
-      emailRedirectTo: `${getSiteUrl()}/auth/callback`,
     },
   });
 
@@ -89,14 +88,18 @@ export async function signup(formData: FormData) {
     await ensureProfileForUser(data.user.id, name, email);
   }
 
-  if (data.session) {
-    redirect("/onboarding");
+  // Email confirmation is disabled: ensure an active session and continue.
+  if (!data.session) {
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInError) {
+      return { error: signInError.message };
+    }
   }
 
-  return {
-    success:
-      "Cuenta creada. Revisa tu correo para confirmar tu cuenta antes de iniciar sesión.",
-  };
+  redirect("/onboarding");
 }
 
 function getSiteUrl() {
