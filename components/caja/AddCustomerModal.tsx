@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -32,6 +32,10 @@ export function AddCustomerModal({
   const customers = getCustomers();
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    if (!open) setSearch("");
+  }, [open]);
+
   const filtered = customers.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,7 +48,13 @@ export function AddCustomerModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Agregar Cliente">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Agregar Cliente"
+      fillHeight
+      repositionInputs={false}
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex shrink-0 items-center gap-2 pt-1">
           <TextField
@@ -65,7 +75,7 @@ export function AddCustomerModal({
           </Button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-1 pt-0.5">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain px-1 pt-0.5">
           {filtered.length === 0 ? (
             <p className="py-6 text-center text-sm text-muted-foreground">
               No hay clientes que coincidan

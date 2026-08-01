@@ -9,6 +9,7 @@ import { NumericKeyboard } from "@/components/ui/NumericKeyboard";
 import type { PaymentMethod, PaymentType } from "@/lib/types/database";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import {
+  getPaymentMethodLabel,
   paymentMethodReceivedLabel,
   paymentMethodUsesNumericKeyboard,
   type PaymentFlow,
@@ -25,11 +26,9 @@ interface ConfirmPaymentModalProps {
   paymentType: PaymentType;
   paymentMethod: PaymentMethod;
   flow?: PaymentFlow;
-  customerName?: string | null;
   submitting?: boolean;
   error?: string | null;
   onConfirm: (toPay: number, received: number) => void | Promise<void>;
-  onRequireCustomer?: () => void;
 }
 
 export function ConfirmPaymentModal({
@@ -39,11 +38,9 @@ export function ConfirmPaymentModal({
   paymentType,
   paymentMethod,
   flow = "sale",
-  customerName,
   submitting = false,
   error,
   onConfirm,
-  onRequireCustomer,
 }: ConfirmPaymentModalProps) {
   const isPurchase = flow === "purchase";
   const [toPay, setToPay] = useState(String(total));
@@ -85,19 +82,13 @@ export function ConfirmPaymentModal({
           : undefined,
   );
   const createsDebt = saleCreatesDebt(amounts);
-  const needsParty = !customerName;
   const canSubmit =
     !submitting &&
     (isPayLater ||
       (isPartialMode ? toPayNum > 0 : toPayNum > 0 || receivedNum > 0));
 
   function handleConfirm() {
-    if (submitting) return;
-    if (needsParty) {
-      onRequireCustomer?.();
-      return;
-    }
-    if (!canSubmit) return;
+    if (submitting || !canSubmit) return;
     if (isPayLater) {
       void onConfirm(0, 0);
       return;
@@ -117,10 +108,6 @@ export function ConfirmPaymentModal({
           </div>
 
           {createsDebt && (
-            // <p className="text-center text-sm ">
-            //   Saldo pendiente:{" "}
-            //   <span className="font-bold">{formatCurrency(amounts.balanceDue)}</span>
-            // </p>
             <div className="text-center flex items-center justify-between text-warning">
               <p className="text-sm">Saldo pendiente:</p>
               <p className="text-base font-bold tabular-nums text-warning">{formatCurrency(amounts.balanceDue)}</p>
@@ -177,7 +164,7 @@ export function ConfirmPaymentModal({
                   Método
                 </p>
                 <p className="rounded-md bg-input-surface px-3 py-2 text-base font-medium shadow-input-edge">
-                  Otros
+                  {getPaymentMethodLabel(paymentMethod)}
                 </p>
               </div>
             )}
@@ -189,41 +176,6 @@ export function ConfirmPaymentModal({
             Cambio:{" "}
             <span className="font-bold">{formatCurrency(amounts.change)}</span>
           </p>
-        )}
-
-
-
-        {needsParty && (
-          <div className="flex items-start gap-2 rounded-xl bg-amber-50 px-4 py-3 text-amber-900">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p className="text-sm">
-              {isPurchase ? (
-                <>
-                  Agrega un proveedor para finalizar la compra
-                  {createsDebt ? (
-                    <>
-                      {" "}
-                      y registrar el saldo en{" "}
-                      <span className="font-medium">Deudas</span>
-                    </>
-                  ) : null}
-                  .
-                </>
-              ) : (
-                <>
-                  Agrega un cliente para finalizar la venta
-                  {createsDebt ? (
-                    <>
-                      {" "}
-                      y registrar la deuda en{" "}
-                      <span className="font-medium">Deudas</span>
-                    </>
-                  ) : null}
-                  .
-                </>
-              )}
-            </p>
-          </div>
         )}
 
         {error && (
@@ -243,15 +195,9 @@ export function ConfirmPaymentModal({
         <Button
           fullWidth
           onClick={handleConfirm}
-          disabled={submitting || (!needsParty && !canSubmit)}
+          disabled={submitting || !canSubmit}
         >
-          {submitting
-            ? "Finalizando…"
-            : needsParty
-              ? isPurchase
-                ? "AGREGAR PROVEEDOR"
-                : "AGREGAR CLIENTE"
-              : "FINALIZAR"}
+          {submitting ? "Finalizando…" : "FINALIZAR"}
         </Button>
       </div>
     </Modal>

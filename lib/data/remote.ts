@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/client";
 import { fetchMyBusiness } from "@/lib/business/resolve";
 import type {
   Category,
+  CustomPaymentMethod,
   Customer,
   Debt,
   Order,
@@ -14,6 +15,7 @@ import type { DataCache } from "@/lib/data/mock";
 import { emptyCache } from "@/lib/data/mock";
 import {
   mapCategory,
+  mapCustomPaymentMethod,
   mapCustomer,
   mapDebt,
   mapOrder,
@@ -41,6 +43,7 @@ export async function fetchRemoteCache(): Promise<DataCache> {
     categoriesRes,
     customersRes,
     suppliersRes,
+    customPaymentMethodsRes,
     ordersRes,
     purchasesRes,
     debtsRes,
@@ -55,6 +58,11 @@ export async function fetchRemoteCache(): Promise<DataCache> {
       .order("name", { ascending: true }),
     client
       .from("suppliers")
+      .select("*")
+      .eq("business_id", businessId)
+      .order("name", { ascending: true }),
+    client
+      .from("custom_payment_methods")
       .select("*")
       .eq("business_id", businessId)
       .order("name", { ascending: true }),
@@ -81,6 +89,7 @@ export async function fetchRemoteCache(): Promise<DataCache> {
     categoriesRes.error,
     customersRes.error,
     suppliersRes.error,
+    customPaymentMethodsRes.error,
     ordersRes.error,
     purchasesRes.error,
     debtsRes.error,
@@ -111,6 +120,9 @@ export async function fetchRemoteCache(): Promise<DataCache> {
     ),
     suppliers: (suppliersRes.data ?? []).map((r) =>
       mapSupplier(r as Record<string, unknown>),
+    ),
+    customPaymentMethods: (customPaymentMethodsRes.data ?? []).map((r) =>
+      mapCustomPaymentMethod(r as Record<string, unknown>),
     ),
     orders: (ordersRes.data ?? []).map((row) => {
       const record = row as Record<string, unknown> & {
@@ -206,6 +218,21 @@ export async function remoteUpsertSupplier(supplier: Supplier): Promise<void> {
       phone: supplier.phone,
       nit: supplier.nit,
       created_at: supplier.created_at,
+    });
+  if (error) throw new Error(error.message);
+}
+
+export async function remoteUpsertCustomPaymentMethod(
+  method: CustomPaymentMethod,
+): Promise<void> {
+  const { error } = await supabase()
+    .from("custom_payment_methods")
+    .upsert({
+      id: method.id,
+      business_id: method.business_id,
+      name: method.name,
+      active: method.active,
+      created_at: method.created_at,
     });
   if (error) throw new Error(error.message);
 }

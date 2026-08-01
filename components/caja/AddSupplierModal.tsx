@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
@@ -32,6 +32,10 @@ export function AddSupplierModal({
   const suppliers = getSuppliers();
   const [search, setSearch] = useState("");
 
+  useEffect(() => {
+    if (!open) setSearch("");
+  }, [open]);
+
   const filtered = suppliers.filter((s) => {
     const query = search.toLowerCase();
     return (
@@ -47,7 +51,13 @@ export function AddSupplierModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Agregar Proveedor">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Agregar Proveedor"
+      fillHeight
+      repositionInputs={false}
+    >
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex shrink-0 items-center gap-2 pt-1">
           <TextField
@@ -68,7 +78,7 @@ export function AddSupplierModal({
           </Button>
         </div>
 
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pt-0.5">
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-y-contain pt-0.5">
           {filtered.length === 0 ? (
             <p className="py-6 text-center text-sm text-slate-500">
               No hay proveedores que coincidan
