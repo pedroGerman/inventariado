@@ -34,6 +34,7 @@ function getPaymentMethodIcon(method: PaymentMethod | string) {
     case "card":
       return CreditCard;
     case "other":
+    case "custom":
       return Plus;
   }
 }

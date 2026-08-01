@@ -91,10 +91,6 @@ async function syncStockAfterPendingFinalize(
 export async function finalizeSale(
   params: FinalizeSaleParams,
 ): Promise<FinalizeSaleResult> {
-  if (!params.customerId) {
-    throw new Error("Se requiere un cliente para finalizar la venta.");
-  }
-
   const subtotal = params.items.reduce((s, i) => s + i.total_price, 0);
   const total = subtotal + params.tax + params.service - params.discount;
   const now = new Date().toISOString();
@@ -144,7 +140,7 @@ export async function finalizeSale(
     await syncStockAfterPendingFinalize("sale", params.items);
 
     let debt: Debt | undefined;
-    if (payment.balanceDue > 0 && params.customerId) {
+    if (payment.balanceDue > 0) {
       debt = {
         id: newEntityId(),
         kind: "collect",
@@ -203,7 +199,7 @@ export async function finalizeSale(
   await applySaleStock(params.items);
 
   let debt: Debt | undefined;
-  if (payment.balanceDue > 0 && params.customerId) {
+  if (payment.balanceDue > 0) {
     debt = {
       id: newEntityId(),
       kind: "collect",
@@ -327,10 +323,6 @@ export interface FinalizePurchaseResult {
 export async function finalizePurchase(
   params: FinalizePurchaseParams,
 ): Promise<FinalizePurchaseResult> {
-  if (!params.supplierId) {
-    throw new Error("Se requiere un proveedor para finalizar la compra.");
-  }
-
   const subtotal = params.items.reduce((s, i) => s + i.total_price, 0);
   const total = subtotal + params.tax - params.discount;
   const now = new Date().toISOString();
@@ -379,7 +371,7 @@ export async function finalizePurchase(
     await syncStockAfterPendingFinalize("purchase", params.items);
 
     let debt: Debt | undefined;
-    if (payment.balanceDue > 0 && params.supplierId) {
+    if (payment.balanceDue > 0) {
       debt = {
         id: newEntityId(),
         kind: "pay",
@@ -437,7 +429,7 @@ export async function finalizePurchase(
   await applyPurchaseStock(params.items);
 
   let debt: Debt | undefined;
-  if (payment.balanceDue > 0 && params.supplierId) {
+  if (payment.balanceDue > 0) {
     debt = {
       id: newEntityId(),
       kind: "pay",

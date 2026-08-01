@@ -92,6 +92,11 @@ interface AppDrawerProps {
   repositionInputs?: boolean;
   /** Scroll focused inputs into view inside the drawer. Default true. */
   scrollFocusedInputs?: boolean;
+  /**
+   * When true, the body is a flex column with overflow hidden so children can
+   * own scrolling (e.g. sticky search + list). Default scrolls the body.
+   */
+  fillHeight?: boolean;
 }
 
 function AppDrawer({
@@ -105,6 +110,7 @@ function AppDrawer({
   fixed = true,
   repositionInputs = true,
   scrollFocusedInputs = true,
+  fillHeight = false,
 }: AppDrawerProps) {
   const drawerHeight = `${snapPoint * 100}dvh`;
 
@@ -145,7 +151,9 @@ function AppDrawer({
           "safe-bottom overscroll-y-contain px-4 pb-4",
           fitContent
             ? "overflow-y-auto"
-            : "min-h-0 flex-1 overflow-y-auto",
+            : fillHeight
+              ? "flex min-h-0 flex-1 flex-col overflow-hidden"
+              : "min-h-0 flex-1 overflow-y-auto",
           className,
         )}
         onFocusCapture={

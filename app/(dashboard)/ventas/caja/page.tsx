@@ -66,10 +66,6 @@ function CajaPageContent() {
   const [highlightSupplierId, setHighlightSupplierId] = useState<string | null>(null);
   const [confirmModal, setConfirmModal] = useState(false);
   const [discountModal, setDiscountModal] = useState(false);
-  const [reopenConfirmAfterCustomer, setReopenConfirmAfterCustomer] =
-    useState(false);
-  const [reopenConfirmAfterSupplier, setReopenConfirmAfterSupplier] =
-    useState(false);
   const [finalizing, setFinalizing] = useState(false);
   const [finalizeError, setFinalizeError] = useState<string | null>(null);
   const [date] = useState(todayISO());
@@ -133,7 +129,7 @@ function CajaPageContent() {
   }
 
   async function handleFinalizeSale(toPay: number, received: number) {
-    if (finalizing || !current || saleItems.length === 0 || !checkout.customer) {
+    if (finalizing || !current || saleItems.length === 0) {
       return;
     }
 
@@ -144,7 +140,7 @@ function CajaPageContent() {
       const { order, debt } = await finalizeSale({
         items: saleItems,
         employee: current,
-        customerId: checkout.customer.id,
+        customerId: checkout.customer?.id ?? null,
         paymentMethod: checkout.paymentMethod,
         paymentType: checkout.paymentType,
         discount: discountAmount,
@@ -177,12 +173,7 @@ function CajaPageContent() {
   }
 
   async function handleFinalizePurchase(toPay: number, received: number) {
-    if (
-      finalizing ||
-      !current ||
-      purchaseItems.length === 0 ||
-      !checkout.supplier
-    ) {
+    if (finalizing || !current || purchaseItems.length === 0) {
       return;
     }
 
@@ -193,7 +184,7 @@ function CajaPageContent() {
       const { purchase, debt } = await finalizePurchase({
         items: purchaseItems,
         employee: current,
-        supplierId: checkout.supplier.id,
+        supplierId: checkout.supplier?.id ?? null,
         paymentMethod: checkout.paymentMethod,
         paymentType: checkout.paymentType as "pay_all" | "deposit" | "pay_later",
         discount: discountAmount,
@@ -414,19 +405,7 @@ function CajaPageContent() {
           fullWidth
           variant="success"
           disabled={items.length === 0 || finalizing}
-          onClick={() => {
-            if (tab === "sale" && !checkout.customer) {
-              setReopenConfirmAfterCustomer(true);
-              setCustomerModal(true);
-              return;
-            }
-            if (tab === "purchase" && !checkout.supplier) {
-              setReopenConfirmAfterSupplier(true);
-              setSupplierModal(true);
-              return;
-            }
-            setConfirmModal(true);
-          }}
+          onClick={() => setConfirmModal(true)}
         >
           {tab === "sale" ? "Continuar" : "Finalizar"}
         </Button>
@@ -437,14 +416,9 @@ function CajaPageContent() {
         onClose={() => {
           setCustomerModal(false);
           setHighlightCustomerId(null);
-          setReopenConfirmAfterCustomer(false);
         }}
         onSelect={(customer) => {
           checkout.setCustomer(customer);
-          if (reopenConfirmAfterCustomer) {
-            setReopenConfirmAfterCustomer(false);
-            setConfirmModal(true);
-          }
         }}
         highlightCustomerId={highlightCustomerId}
       />
@@ -454,14 +428,9 @@ function CajaPageContent() {
         onClose={() => {
           setSupplierModal(false);
           setHighlightSupplierId(null);
-          setReopenConfirmAfterSupplier(false);
         }}
         onSelect={(supplier) => {
           checkout.setSupplier(supplier);
-          if (reopenConfirmAfterSupplier) {
-            setReopenConfirmAfterSupplier(false);
-            setConfirmModal(true);
-          }
         }}
         highlightSupplierId={highlightSupplierId}
       />
@@ -488,24 +457,10 @@ function CajaPageContent() {
         paymentMethod={checkout.paymentMethod}
         submitting={finalizing}
         error={finalizeError}
-        customerName={tab === "sale" ? checkout.customer?.name : checkout.supplier?.name}
         onConfirm={
           tab === "sale"
             ? handleFinalizeSale
             : handleFinalizePurchase
-        }
-        onRequireCustomer={
-          tab === "sale"
-            ? () => {
-                setConfirmModal(false);
-                setReopenConfirmAfterCustomer(true);
-                setCustomerModal(true);
-              }
-            : () => {
-                setConfirmModal(false);
-                setReopenConfirmAfterSupplier(true);
-                setSupplierModal(true);
-              }
         }
       />
     </>

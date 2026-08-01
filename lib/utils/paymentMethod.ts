@@ -1,7 +1,43 @@
-import type { PaymentMethod } from "@/lib/types/database";
+import type {
+  BuiltinPaymentMethod,
+  PaymentMethod,
+} from "@/lib/types/database";
 
-export type PaymentMethodCategory = "cash" | "transfer" | "card" | "other";
+export type PaymentMethodCategory = "cash" | "transfer" | "card" | "other" | "custom";
 export type CardType = "debit" | "credit";
+
+const BUILTIN_PAYMENT_METHODS: readonly BuiltinPaymentMethod[] = [
+  "cash",
+  "transfer",
+  "credit_card",
+  "debit_card",
+  "other",
+] as const;
+
+const RESERVED_PAYMENT_METHOD_NAMES = new Set([
+  ...BUILTIN_PAYMENT_METHODS,
+  "efectivo",
+  "transferencia",
+  "tarjeta",
+  "tarjeta credito",
+  "tarjeta crédito",
+  "tarjeta debito",
+  "tarjeta débito",
+  "otros",
+  "card",
+  "debit",
+  "credit",
+]);
+
+export function isBuiltinPaymentMethod(
+  method: string,
+): method is BuiltinPaymentMethod {
+  return (BUILTIN_PAYMENT_METHODS as readonly string[]).includes(method);
+}
+
+export function isReservedPaymentMethodName(name: string): boolean {
+  return RESERVED_PAYMENT_METHOD_NAMES.has(name.trim().toLowerCase());
+}
 
 export function getPaymentMethodCategory(
   method: PaymentMethod,
@@ -9,7 +45,8 @@ export function getPaymentMethodCategory(
   if (method === "credit_card" || method === "debit_card") return "card";
   if (method === "transfer") return "transfer";
   if (method === "other") return "other";
-  return "cash";
+  if (method === "cash") return "cash";
+  return "custom";
 }
 
 export function getCardType(method: PaymentMethod): CardType {
@@ -17,7 +54,7 @@ export function getCardType(method: PaymentMethod): CardType {
 }
 
 export function resolvePaymentMethod(
-  category: PaymentMethodCategory,
+  category: Exclude<PaymentMethodCategory, "custom">,
   cardType: CardType = "debit",
 ): PaymentMethod {
   switch (category) {
@@ -45,7 +82,7 @@ export function getPaymentMethodLabel(method: PaymentMethod | string): string {
     case "other":
       return "Otros";
     default:
-      return method.replace(/_/g, " ");
+      return method.trim() || "Otros";
   }
 }
 

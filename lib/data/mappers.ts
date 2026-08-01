@@ -1,5 +1,6 @@
 import type {
   Category,
+  CustomPaymentMethod,
   Customer,
   Debt,
   Order,
@@ -70,6 +71,18 @@ export function mapSupplier(row: Record<string, unknown>): Supplier {
     name: String(row.name),
     phone: row.phone ? String(row.phone) : null,
     nit: row.nit ? String(row.nit) : null,
+    created_at: String(row.created_at),
+  };
+}
+
+export function mapCustomPaymentMethod(
+  row: Record<string, unknown>,
+): CustomPaymentMethod {
+  return {
+    id: String(row.id),
+    business_id: String(row.business_id),
+    name: String(row.name),
+    active: row.active !== false,
     created_at: String(row.created_at),
   };
 }

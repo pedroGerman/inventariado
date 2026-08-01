@@ -2,6 +2,7 @@ import type {
   AccountProfile,
   Business,
   Category,
+  CustomPaymentMethod,
   Customer,
   Debt,
   Order,
@@ -29,6 +30,7 @@ export interface DataCache {
   categories: Category[];
   customers: Customer[];
   suppliers: Supplier[];
+  customPaymentMethods: CustomPaymentMethod[];
   orders: Order[];
   purchases: Purchase[];
   debts: Debt[];
@@ -43,6 +45,7 @@ function emptyCache(): DataCache {
     categories: [],
     customers: [],
     suppliers: [],
+    customPaymentMethods: [],
     orders: [],
     purchases: [],
     debts: [],
@@ -74,6 +77,7 @@ function seedCache(): DataCache {
     categories: [...mockCategories],
     customers: [...mockCustomers],
     suppliers: [...mockSuppliers],
+    customPaymentMethods: [],
     orders: [...mockOrders],
     purchases: [...mockPurchases],
     debts: [...mockDebts],
@@ -96,6 +100,8 @@ function normalizeSeedCache(raw: Partial<DataCache> | null): DataCache {
           ? product.min_stock
           : 5,
     })),
+    customPaymentMethods:
+      raw.customPaymentMethods ?? defaults.customPaymentMethods,
     business: raw.business ?? defaults.business,
     account: raw.account ?? defaults.account,
   };

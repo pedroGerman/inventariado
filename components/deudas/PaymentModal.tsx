@@ -11,6 +11,7 @@ import { Toggle } from "@/components/ui/Toggle";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import {
   getBusiness,
+  getCustomPaymentMethods,
   getCustomers,
   getDebt,
   getOrder,
@@ -19,6 +20,7 @@ import {
   savePayment,
   newEntityId,
 } from "@/lib/mock/db";
+import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
 import {
   orderToReceiptDocument,
   purchaseToReceiptDocument,
@@ -46,6 +48,8 @@ export function PaymentModal({
   flow = "collect",
   onSuccess,
 }: PaymentModalProps) {
+  useMockDBRefresh();
+  const customMethods = getCustomPaymentMethods();
   const isPayable = flow === "pay";
   const [method, setMethod] = useState("cash");
   const [printReceipt, setPrintReceipt] = useState(false);
@@ -173,6 +177,11 @@ export function PaymentModal({
           <SelectItem value="transfer">Transferencia</SelectItem>
           <SelectItem value="debit_card">Tarjeta débito</SelectItem>
           <SelectItem value="credit_card">Tarjeta crédito</SelectItem>
+          {customMethods.map((custom) => (
+            <SelectItem key={custom.id} value={custom.name}>
+              {custom.name}
+            </SelectItem>
+          ))}
           <SelectItem value="other">Otros</SelectItem>
         </SelectField>
 

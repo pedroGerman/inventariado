@@ -3,6 +3,7 @@ import type {
   AccountProfile,
   Business,
   Category,
+  CustomPaymentMethod,
   Customer,
   Debt,
   Order,
@@ -35,6 +36,7 @@ import {
   remoteUpdateOrder,
   remoteUpdatePurchase,
   remoteUpsertCategory,
+  remoteUpsertCustomPaymentMethod,
   remoteUpsertCustomer,
   remoteUpsertProduct,
   remoteUpsertSupplier,
@@ -157,6 +159,14 @@ export function getSuppliers(): Supplier[] {
   return [...getCache().suppliers].sort((a, b) =>
     a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
   );
+}
+
+export function getCustomPaymentMethods(): CustomPaymentMethod[] {
+  return [...getCache().customPaymentMethods]
+    .filter((method) => method.active)
+    .sort((a, b) =>
+      a.name.localeCompare(b.name, "es", { sensitivity: "base" }),
+    );
 }
 
 export function getOrders(): Order[] {
@@ -302,6 +312,23 @@ export async function saveSupplier(supplier: Supplier): Promise<void> {
   }
 
   await remoteUpsertSupplier(supplier);
+  notifyUpdate();
+}
+
+export async function saveCustomPaymentMethod(
+  method: CustomPaymentMethod,
+): Promise<void> {
+  const db = getCache();
+  const idx = db.customPaymentMethods.findIndex((m) => m.id === method.id);
+  if (idx >= 0) db.customPaymentMethods[idx] = method;
+  else db.customPaymentMethods.push(method);
+
+  if (isMockMode()) {
+    persistMock();
+    return;
+  }
+
+  await remoteUpsertCustomPaymentMethod(method);
   notifyUpdate();
 }
 

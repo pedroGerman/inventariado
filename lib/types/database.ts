@@ -2,7 +2,14 @@ export type EmployeeRole = "owner" | "cashier" | "employee";
 export type ProductType = "product" | "supply";
 export type OrderStatus = "confirmed" | "pending" | "cancelled" | "returned";
 export type PurchaseStatus = "confirmed" | "pending" | "cancelled";
-export type PaymentMethod = "cash" | "transfer" | "credit_card" | "debit_card" | "other";
+export type BuiltinPaymentMethod =
+  | "cash"
+  | "transfer"
+  | "credit_card"
+  | "debit_card"
+  | "other";
+/** Built-in keys, or a custom method name saved for the business. */
+export type PaymentMethod = BuiltinPaymentMethod | (string & {});
 export type PaymentType = "pay_all" | "deposit" | "pay_later" | "split";
 export type PurchasePaymentType = "pay_all" | "deposit" | "pay_later";
 export type DebtStatus = "pending" | "partial" | "paid";
@@ -96,6 +103,14 @@ export interface Supplier {
   name: string;
   phone: string | null;
   nit: string | null;
+  created_at: string;
+}
+
+export interface CustomPaymentMethod {
+  id: string;
+  business_id: string;
+  name: string;
+  active: boolean;
   created_at: string;
 }
 
