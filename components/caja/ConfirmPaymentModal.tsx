@@ -26,6 +26,8 @@ interface ConfirmPaymentModalProps {
   paymentType: PaymentType;
   paymentMethod: PaymentMethod;
   flow?: PaymentFlow;
+  /** False when finalizing without customer (sale) or supplier (purchase). */
+  hasParty?: boolean;
   submitting?: boolean;
   error?: string | null;
   onConfirm: (toPay: number, received: number) => void | Promise<void>;
@@ -38,6 +40,7 @@ export function ConfirmPaymentModal({
   paymentType,
   paymentMethod,
   flow = "sale",
+  hasParty = true,
   submitting = false,
   error,
   onConfirm,
@@ -175,6 +178,14 @@ export function ConfirmPaymentModal({
           <p className="text-center text-sm text-slate-600">
             Cambio:{" "}
             <span className="font-bold">{formatCurrency(amounts.change)}</span>
+          </p>
+        )}
+
+        {createsDebt && !hasParty && (
+          <p className="rounded-xl bg-amber-50 px-4 py-3 text-center text-sm text-amber-950">
+            {isPurchase
+              ? "Esta compra quedará con saldo pendiente sin proveedor asociado."
+              : "Esta venta quedará con saldo pendiente sin cliente asociado."}
           </p>
         )}
 

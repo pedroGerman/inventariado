@@ -67,7 +67,9 @@ export default function OrdenDetallePage() {
   const customers = getCustomers();
   const debt = order ? getDebtByOrderId(order.id) : undefined;
   const customer = order
-    ? customers.find((c) => c.id === order.customer_id)
+    ? order.customer_id
+      ? customers.find((c) => c.id === order.customer_id)
+      : undefined
     : undefined;
   const employee = order
     ? mockEmployees.find((e) => e.id === order.employee_id)

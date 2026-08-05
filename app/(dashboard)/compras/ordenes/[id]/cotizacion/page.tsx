@@ -46,7 +46,9 @@ export default function CotizacionCompraPage() {
     );
   }
 
-  const supplier = getSuppliers().find((s) => s.id === purchase.supplier_id);
+  const supplier = purchase.supplier_id
+    ? getSuppliers().find((s) => s.id === purchase.supplier_id)
+    : undefined;
   const employee =
     mockEmployees.find((e) => e.id === purchase.employee_id) ??
     (currentEmployee?.id === purchase.employee_id ? currentEmployee : null);

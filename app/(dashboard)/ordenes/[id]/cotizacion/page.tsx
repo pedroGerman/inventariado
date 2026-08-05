@@ -40,7 +40,9 @@ export default function CotizacionVentaPage() {
     );
   }
 
-  const customer = getCustomers().find((c) => c.id === order.customer_id);
+  const customer = order.customer_id
+    ? getCustomers().find((c) => c.id === order.customer_id)
+    : undefined;
   const employee = mockEmployees.find((e) => e.id === order.employee_id);
   const quote = orderToQuoteDocument(
     order,

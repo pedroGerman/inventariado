@@ -67,7 +67,9 @@ export default function CompraDetallePage() {
   const currentEmployee = useEmployeeStore((s) => s.current);
   const debt = purchase ? getDebtByPurchaseId(purchase.id) : undefined;
   const supplier = purchase
-    ? suppliers.find((s) => s.id === purchase.supplier_id)
+    ? purchase.supplier_id
+      ? suppliers.find((s) => s.id === purchase.supplier_id)
+      : undefined
     : undefined;
   const employee = purchase
     ? currentEmployee?.id === purchase.employee_id

@@ -19,6 +19,9 @@ interface AddSupplierModalProps {
   onClose: () => void;
   onSelect: (supplier: Supplier) => void;
   highlightSupplierId?: string | null;
+  /** Allows continuing without picking a supplier (e.g. quotes). */
+  onSkip?: () => void;
+  skipLabel?: string;
 }
 
 export function AddSupplierModal({
@@ -26,6 +29,8 @@ export function AddSupplierModal({
   onClose,
   onSelect,
   highlightSupplierId,
+  onSkip,
+  skipLabel = "Continuar sin proveedor",
 }: AddSupplierModalProps) {
   useMockDBRefresh();
   const router = useRouter();
@@ -110,6 +115,21 @@ export function AddSupplierModal({
             ))
           )}
         </div>
+
+        {onSkip && (
+          <Button
+            type="button"
+            variant="outline"
+            fullWidth
+            className="shrink-0"
+            onClick={() => {
+              onSkip();
+              onClose();
+            }}
+          >
+            {skipLabel}
+          </Button>
+        )}
       </div>
     </Modal>
   );
