@@ -136,6 +136,33 @@ export function CartPendingActions({ mode }: CartPendingActionsProps) {
     await persistPending({ isQuote: true, supplierId: supplier.id });
   }
 
+  async function handleQuoteWithoutParty() {
+    await persistPending({ isQuote: true });
+  }
+
+  function startQuote() {
+    if (isSale) {
+      if (checkout.customer) {
+        void persistPending({
+          isQuote: true,
+          customerId: checkout.customer.id,
+        });
+        return;
+      }
+      setCustomerModal(true);
+      return;
+    }
+
+    if (checkout.supplier) {
+      void persistPending({
+        isQuote: true,
+        supplierId: checkout.supplier.id,
+      });
+      return;
+    }
+    setSupplierModal(true);
+  }
+
   async function handleClearCart() {
     setClearing(true);
     setError(null);
@@ -168,9 +195,7 @@ export function CartPendingActions({ mode }: CartPendingActionsProps) {
           icon={FileText}
           label="Cotizar"
           disabled={saving || items.length === 0}
-          onClick={() =>
-            isSale ? setCustomerModal(true) : setSupplierModal(true)
-          }
+          onClick={startQuote}
         />
         <CartAction
           icon={Save}
@@ -225,12 +250,14 @@ export function CartPendingActions({ mode }: CartPendingActionsProps) {
         open={customerModal}
         onClose={() => setCustomerModal(false)}
         onSelect={handleQuoteCustomer}
+        onSkip={() => void handleQuoteWithoutParty()}
       />
 
       <AddSupplierModal
         open={supplierModal}
         onClose={() => setSupplierModal(false)}
         onSelect={handleQuoteSupplier}
+        onSkip={() => void handleQuoteWithoutParty()}
       />
     </>
   );

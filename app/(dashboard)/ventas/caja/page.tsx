@@ -455,6 +455,9 @@ function CajaPageContent() {
         flow={tab}
         paymentType={checkout.paymentType}
         paymentMethod={checkout.paymentMethod}
+        hasParty={
+          tab === "sale" ? Boolean(checkout.customer) : Boolean(checkout.supplier)
+        }
         submitting={finalizing}
         error={finalizeError}
         onConfirm={

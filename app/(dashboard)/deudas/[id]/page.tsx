@@ -163,7 +163,7 @@ export default function DeudaDetallePage() {
           </Button>
         </div>
 
-        {(customer || supplier) && (
+        {customer || supplier ? (
           <div className="flex items-center gap-3 rounded-2xl bg-white px-1 py-1 shadow-card">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
               {(customer?.name ?? supplier?.name ?? "?").charAt(0)}
@@ -177,6 +177,10 @@ export default function DeudaDetallePage() {
               )}
             </div>
           </div>
+        ) : (
+          <p className="px-1 text-sm text-muted-foreground">
+            {isPayable ? "Sin proveedor" : "Sin cliente"}
+          </p>
         )}
 
         {reference && (

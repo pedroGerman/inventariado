@@ -19,6 +19,9 @@ interface AddCustomerModalProps {
   onClose: () => void;
   onSelect: (customer: Customer) => void;
   highlightCustomerId?: string | null;
+  /** Allows continuing without picking a customer (e.g. quotes). */
+  onSkip?: () => void;
+  skipLabel?: string;
 }
 
 export function AddCustomerModal({
@@ -26,6 +29,8 @@ export function AddCustomerModal({
   onClose,
   onSelect,
   highlightCustomerId,
+  onSkip,
+  skipLabel = "Continuar sin cliente",
 }: AddCustomerModalProps) {
   useMockDBRefresh();
   const router = useRouter();
@@ -98,6 +103,21 @@ export function AddCustomerModal({
             </div>
           )}
         </div>
+
+        {onSkip && (
+          <Button
+            type="button"
+            variant="outline"
+            fullWidth
+            className="shrink-0"
+            onClick={() => {
+              onSkip();
+              onClose();
+            }}
+          >
+            {skipLabel}
+          </Button>
+        )}
       </div>
     </Modal>
   );
