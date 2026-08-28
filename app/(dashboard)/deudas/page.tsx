@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Wallet } from "lucide-react";
+import { Eye, EyeOff, Search, Wallet } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { TextField } from "@/components/ui/Input";
 import {
   getDebts,
   getOrders,
@@ -29,6 +30,41 @@ import type { Debt } from "@/lib/types/database";
 
 type DebtTab = "collect" | "pay";
 
+function digitsOnly(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+function matchesDebtSearch(
+  debt: Debt,
+  query: string,
+  partyName: string | undefined,
+  documentNumber: string | undefined,
+): boolean {
+  if (!query) return true;
+
+  const haystack = [
+    documentNumber,
+    partyName,
+    formatCurrency(debt.remaining),
+    formatCurrency(debt.total),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (haystack.includes(query)) return true;
+
+  const queryDigits = digitsOnly(query);
+  if (queryDigits.length < 2) return false;
+
+  return (
+    digitsOnly(String(debt.remaining)).includes(queryDigits) ||
+    digitsOnly(String(debt.total)).includes(queryDigits) ||
+    digitsOnly(formatCurrency(debt.remaining)).includes(queryDigits) ||
+    digitsOnly(formatCurrency(debt.total)).includes(queryDigits)
+  );
+}
+
 export default function DeudasPage() {
   return (
     <Suspense fallback={null}>
@@ -43,6 +79,7 @@ function DeudasPageContent() {
   const [tab, setTab] = useState<DebtTab>("collect");
   const [concealed, setConcealed] = useState(true);
   const [filterDate, setFilterDate] = useState<DateFilterValue>(null);
+  const [search, setSearch] = useState("");
 
   const debts = getDebts();
   const orders = getOrders();
@@ -60,15 +97,40 @@ function DeudasPageContent() {
   }, [searchParams]);
 
   const isCollect = tab === "collect";
+  const query = search.trim().toLowerCase();
 
   const allCollectDebts = debts.filter((d) => d.kind === "collect" && d.remaining > 0);
   const allPayDebts = debts.filter((d) => d.kind === "pay" && d.remaining > 0);
 
-  const collectDebts = allCollectDebts.filter((d) =>
-    matchesDateFilter(d.created_at.split("T")[0], filterDate),
+  const collectDebts = useMemo(
+    () =>
+      allCollectDebts.filter((d) => {
+        if (!matchesDateFilter(d.created_at.split("T")[0], filterDate)) return false;
+        const order = orders.find((o) => o.id === d.order_id);
+        const customer = customers.find((c) => c.id === d.customer_id);
+        return matchesDebtSearch(
+          d,
+          query,
+          customer?.name ?? "Sin cliente",
+          order?.order_number,
+        );
+      }),
+    [allCollectDebts, filterDate, query, orders, customers],
   );
-  const payDebts = allPayDebts.filter((d) =>
-    matchesDateFilter(d.created_at.split("T")[0], filterDate),
+  const payDebts = useMemo(
+    () =>
+      allPayDebts.filter((d) => {
+        if (!matchesDateFilter(d.created_at.split("T")[0], filterDate)) return false;
+        const purchase = purchases.find((p) => p.id === d.purchase_id);
+        const supplier = suppliers.find((s) => s.id === d.supplier_id);
+        return matchesDebtSearch(
+          d,
+          query,
+          supplier?.name ?? "Sin proveedor",
+          purchase?.purchase_number,
+        );
+      }),
+    [allPayDebts, filterDate, query, purchases, suppliers],
   );
   const displayDebts = isCollect ? collectDebts : payDebts;
 
@@ -175,6 +237,15 @@ function DeudasPageContent() {
           </div>
         </div>
 
+        <TextField
+          type="text"
+          leftIcon={<Search className="h-4 w-4" />}
+          value={search}
+          className="placeholder:text-sm"
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar por nombre, orden o monto"
+        />
+
         <DateFilterPicker value={filterDate} onChange={setFilterDate} />
        </section>
 
@@ -267,9 +338,11 @@ function DeudasPageContent() {
         {displayDebts.length === 0 && (
           <EmptyState
             title={
-              isCollect
-                ? "No hay deudas pendientes por cobrar"
-                : "No hay deudas por pagar"
+              query
+                ? "No hay deudas que coincidan"
+                : isCollect
+                  ? "No hay deudas pendientes por cobrar"
+                  : "No hay deudas por pagar"
             }
           />
         )}
