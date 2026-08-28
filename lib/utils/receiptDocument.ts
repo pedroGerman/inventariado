@@ -31,6 +31,43 @@ export function receiptPdfFileName(number: string): string {
   return `recibo-${safe}.pdf`;
 }
 
+function receiptPaidAndBalance(
+  total: number,
+  amountPaid: number | null,
+): Pick<ReceiptDocument, "amountPaid" | "balanceDue"> {
+  if (amountPaid == null) {
+    return { amountPaid: null, balanceDue: null };
+  }
+
+  const applied = Math.min(Math.max(0, amountPaid), total);
+  return {
+    amountPaid: applied,
+    balanceDue: Math.max(0, total - applied),
+  };
+}
+
+function saleAmountPaid(
+  order: Order,
+  debt: Debt | undefined,
+  isPending: boolean,
+): number | null {
+  if (isPending) return null;
+  if (debt) return debt.paid;
+  if (order.payment_type === "pay_later") return 0;
+  return order.cash_received ?? order.total;
+}
+
+function purchaseAmountPaid(
+  purchase: Purchase,
+  debt: Debt | undefined,
+  isPending: boolean,
+): number | null {
+  if (isPending) return null;
+  if (debt) return debt.paid;
+  if (purchase.payment_type === "pay_later") return 0;
+  return purchase.cash_paid ?? purchase.total;
+}
+
 export function orderToReceiptDocument(
   order: Order,
   businessName: string,
@@ -43,6 +80,10 @@ export function orderToReceiptDocument(
 ): ReceiptDocument {
   const debt = options.debt;
   const isPending = order.status === "pending";
+  const settlement = receiptPaidAndBalance(
+    order.total,
+    saleAmountPaid(order, debt, isPending),
+  );
 
   return {
     kind: "sale",
@@ -68,19 +109,8 @@ export function orderToReceiptDocument(
     service: order.service,
     discount: order.discount,
     total: order.total,
-    amountPaid: isPending
-      ? null
-      : debt
-        ? debt.paid
-        : order.payment_type === "pay_later"
-          ? 0
-          : (order.cash_received ?? order.total),
-    balanceDue:
-      debt && debt.remaining > 0
-        ? debt.remaining
-        : order.payment_type === "pay_later"
-          ? order.total
-          : null,
+    amountPaid: settlement.amountPaid,
+    balanceDue: settlement.balanceDue,
     change: isPending ? null : order.change ?? null,
   };
 }
@@ -97,6 +127,10 @@ export function purchaseToReceiptDocument(
 ): ReceiptDocument {
   const debt = options.debt;
   const isPending = purchase.status === "pending";
+  const settlement = receiptPaidAndBalance(
+    purchase.total,
+    purchaseAmountPaid(purchase, debt, isPending),
+  );
 
   return {
     kind: "purchase",
@@ -122,19 +156,8 @@ export function purchaseToReceiptDocument(
     service: 0,
     discount: purchase.discount,
     total: purchase.total,
-    amountPaid: isPending
-      ? null
-      : debt
-        ? debt.paid
-        : purchase.payment_type === "pay_later"
-          ? 0
-          : (purchase.cash_paid ?? purchase.total),
-    balanceDue:
-      debt && debt.remaining > 0
-        ? debt.remaining
-        : purchase.payment_type === "pay_later"
-          ? purchase.total
-          : null,
+    amountPaid: settlement.amountPaid,
+    balanceDue: settlement.balanceDue,
     change: isPending ? null : purchase.change ?? null,
   };
 }

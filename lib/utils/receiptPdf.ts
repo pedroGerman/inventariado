@@ -125,8 +125,8 @@ function buildReceiptPdf(doc: import("jspdf").jsPDF, data: ReceiptDocument): voi
     y += 5;
   }
 
-  if (data.balanceDue != null && data.balanceDue > 0) {
-    doc.setFont("helvetica", "bold");
+  if (data.amountPaid != null && data.balanceDue != null) {
+    doc.setFont("helvetica", data.balanceDue > 0 ? "bold" : "normal");
     doc.text("Saldo pendiente", margin, y);
     doc.text(money(data.balanceDue), pageWidth - margin, y, { align: "right" });
     y += 5;
