@@ -1,21 +1,19 @@
-"use client";
+import { redirect } from "next/navigation";
+import { DashboardShell } from "@/components/layout/DashboardShell";
+import { getMyBusiness } from "@/lib/business/actions";
+import { isMockMode } from "@/lib/config";
 
-import { BottomNav } from "@/components/layout/BottomNav";
-import { CartReplaceConfirmDialog } from "@/components/ordenes/CartReplaceConfirmDialog";
-import { AppSessionProvider } from "@/components/providers/AppSessionProvider";
-
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <AppSessionProvider>
-      <div className="mx-auto min-h-screen max-w-mobile bg-white pb-24">
-        {children}
-      </div>
-      <BottomNav />
-      <CartReplaceConfirmDialog />
-    </AppSessionProvider>
-  );
+  if (!isMockMode()) {
+    const business = await getMyBusiness();
+    if (!business) {
+      redirect("/onboarding");
+    }
+  }
+
+  return <DashboardShell>{children}</DashboardShell>;
 }
