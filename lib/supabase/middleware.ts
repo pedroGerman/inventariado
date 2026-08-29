@@ -1,11 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { fetchMyBusiness } from "@/lib/business/resolve";
 import {
   isMockMode,
   MOCK_ONBOARDING_COOKIE,
   MOCK_SESSION_COOKIE,
 } from "@/lib/config";
+
+/** Stay well under Vercel's 25s middleware limit so a hung Supabase call cannot 504 the app. */
+const SUPABASE_FETCH_TIMEOUT_MS = 8_000;
 
 function isPublicAuthRoute(pathname: string) {
   return (
@@ -16,8 +18,14 @@ function isPublicAuthRoute(pathname: string) {
   );
 }
 
-function isPasswordRecoveryRoute(pathname: string) {
-  return pathname.startsWith("/recuperar-contrasena");
+function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): Promise<Response> {
+  return fetch(input, {
+    ...init,
+    signal: AbortSignal.timeout(SUPABASE_FETCH_TIMEOUT_MS),
+  });
 }
 
 export async function updateSession(request: NextRequest) {
@@ -93,12 +101,21 @@ export async function updateSession(request: NextRequest) {
           );
         },
       },
+      global: {
+        fetch: fetchWithTimeout,
+      },
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    user = authUser;
+  } catch (error) {
+    console.error("[middleware] getUser timed out or failed", error);
+  }
 
   if (!user && !isPublicAuthRoute(pathname)) {
     const url = request.nextUrl.clone();
@@ -106,27 +123,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const business = user ? await fetchMyBusiness(supabase) : null;
-
-  if (user && isPublicAuthRoute(pathname)) {
-    const url = request.nextUrl.clone();
-    url.pathname = business ? "/" : "/onboarding";
-    return NextResponse.redirect(url);
-  }
-
-  if (
-    user &&
-    !isPublicAuthRoute(pathname) &&
-    !isOnboarding &&
-    !isPasswordRecoveryRoute(pathname) &&
-    !business
-  ) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/onboarding";
-    return NextResponse.redirect(url);
-  }
-
-  if (user && isOnboarding && business) {
+  if (user && isPublicAuthRoute(pathname) && !pathname.startsWith("/auth/callback")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);

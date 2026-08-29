@@ -1,16 +1,19 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getMyBusiness } from "@/lib/business/actions";
+import { isMockMode } from "@/lib/config";
+import { OnboardingClientLayout } from "./OnboardingClientLayout";
 
-import { useEffect } from "react";
-import { clearStaleLocalData } from "@/lib/client/clearStaleLocalData";
-
-export default function OnboardingLayout({
+export default async function OnboardingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  useEffect(() => {
-    clearStaleLocalData();
-  }, []);
+  if (!isMockMode()) {
+    const business = await getMyBusiness();
+    if (business) {
+      redirect("/");
+    }
+  }
 
-  return children;
+  return <OnboardingClientLayout>{children}</OnboardingClientLayout>;
 }
