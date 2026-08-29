@@ -36,7 +36,7 @@ const MONTHS_ES = [
 ];
 
 const WEEKDAYS_ES = [
-  "domingo", "lunes", "martes", "miércoles", "jueves", "vieres", "sábado",
+  "domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado",
 ];
 
 export function formatDateGroup(dateStr: string): string {
