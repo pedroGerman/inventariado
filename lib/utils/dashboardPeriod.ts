@@ -2,6 +2,7 @@ import type { Product } from "@/lib/types/database";
 import { getDebts, getOrders, getProducts, getPurchases } from "@/lib/mock/db";
 import {
   getDateRange,
+  getRealizedProfit,
   type ConsolidatedStats,
   type StatsPeriod,
 } from "@/lib/utils/stats";
@@ -352,6 +353,7 @@ export function getConsolidatedStatsForDashboardFilter(
     pendingCollect,
     purchasesTotal,
     pendingPay,
+    ...getRealizedProfit(orders, purchases, debts),
   };
 }
 
