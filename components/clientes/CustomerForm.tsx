@@ -2,16 +2,21 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
+import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { TextField, Textarea } from "@/components/ui/Input";
 import { PhoneField } from "@/components/ui/PhoneField";
 import {
+  deleteCustomer,
+  deleteSupplier,
   saveCustomer,
   saveSupplier,
   newEntityId,
   getActiveBusinessId,
 } from "@/lib/mock/db";
+import { useCheckoutStore } from "@/lib/store/checkout";
 import type { Customer, Supplier } from "@/lib/types/database";
 import { cn } from "@/lib/utils/cn";
 import { normalizePhoneForSave } from "@/lib/utils/phone";
@@ -42,6 +47,9 @@ export function CustomerForm({
   const [showExtra, setShowExtra] = useState(Boolean(customer?.extra_info));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const isCustomer = mode === "customer";
   const title = isCustomer
@@ -113,6 +121,38 @@ export function CustomerForm({
     }
   }
 
+  async function handleDelete() {
+    const id = customer?.id ?? supplier?.id;
+    if (!id || deleting) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      if (isCustomer) {
+        await deleteCustomer(id);
+        const checkout = useCheckoutStore.getState();
+        if (checkout.customer?.id === id) checkout.setCustomer(null);
+      } else {
+        await deleteSupplier(id);
+        const checkout = useCheckoutStore.getState();
+        if (checkout.supplier?.id === id) checkout.setSupplier(null);
+      }
+
+      setDeleteOpen(false);
+      router.push(backHref);
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error
+          ? err.message
+          : `No se pudo eliminar el ${isCustomer ? "cliente" : "proveedor"}.`,
+      );
+      setDeleteOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <>
       <Header title={title} showBack backHref={backHref} />
@@ -164,7 +204,48 @@ export function CustomerForm({
         {error && (
           <p className="text-sm text-destructive">{error}</p>
         )}
+
+        {isEdit && (
+          <Button
+            type="button"
+            variant="destructive"
+            fullWidth
+            disabled={saving || deleting}
+            onClick={() => setDeleteOpen(true)}
+            iconLeft={<Trash2 className="h-4 w-4" />}
+          >
+            {isCustomer ? "Eliminar cliente" : "Eliminar proveedor"}
+          </Button>
+        )}
+
+        {deleteError && (
+          <p className="text-center text-xs text-destructive">{deleteError}</p>
+        )}
       </div>
+
+      {isEdit && (
+        <ConfirmDeleteModal
+          open={deleteOpen}
+          onClose={() => {
+            if (!deleting) setDeleteOpen(false);
+          }}
+          onConfirm={() => void handleDelete()}
+          loading={deleting}
+          title={isCustomer ? "Eliminar cliente" : "Eliminar proveedor"}
+          confirmLabel={
+            isCustomer ? "Sí, eliminar cliente" : "Sí, eliminar proveedor"
+          }
+          description={
+            <>
+              ¿Eliminar{" "}
+              <span className="font-semibold text-card-foreground">
+                {name.trim() || customer?.name || supplier?.name}
+              </span>
+              ? Se quitará del directorio y no podrás recuperarlo.
+            </>
+          }
+        />
+      )}
 
       <div
         className={cn(
