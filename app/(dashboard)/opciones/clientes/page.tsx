@@ -3,13 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Plus, ChevronRight } from "lucide-react";
+import { Plus, ChevronRight, Trash2 } from "lucide-react";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent } from "@/components/ui/Card";
+import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { getCustomers, getSuppliers, getDebts } from "@/lib/mock/db";
+import {
+  deleteCustomer,
+  deleteSupplier,
+  getCustomers,
+  getSuppliers,
+  getDebts,
+} from "@/lib/mock/db";
 import { useMockDBRefresh } from "@/lib/hooks/useMockDBRefresh";
+import { useCheckoutStore } from "@/lib/store/checkout";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { formatPhoneDisplay } from "@/lib/utils/phone";
 import { cn } from "@/lib/utils/cn";
@@ -43,41 +51,55 @@ function ContactRow({
   phone,
   href,
   tone = "success",
+  deleteLabel,
+  onDelete,
 }: {
   name: string;
   phone?: string | null;
   href: string;
   tone?: "success" | "danger";
+  deleteLabel: string;
+  onDelete: () => void;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 py-3.5 transition-colors hover:bg-surface-2/60"
-    >
-      <div
-        className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-          tone === "success"
-            ? "bg-primary/10 text-[var(--button-success)]"
-            : "bg-destructive/10 text-destructive",
-        )}
+    <div className="flex items-center gap-1">
+      <Link
+        href={href}
+        className="flex min-w-0 flex-1 items-center gap-3 py-3.5 transition-colors hover:bg-surface-2/60"
       >
-        {name.charAt(0)}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-card-foreground">
-          {name}
-        </p>
-        {phone ? (
-          <p className="text-xs text-muted-foreground">
-            {formatPhoneDisplay(phone)}
+        <div
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
+            tone === "success"
+              ? "bg-primary/10 text-[var(--button-success)]"
+              : "bg-destructive/10 text-destructive",
+          )}
+        >
+          {name.charAt(0)}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-card-foreground">
+            {name}
           </p>
-        ) : (
-          <p className="text-xs text-muted-foreground">Sin teléfono</p>
-        )}
-      </div>
-      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-    </Link>
+          {phone ? (
+            <p className="text-xs text-muted-foreground">
+              {formatPhoneDisplay(phone)}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">Sin teléfono</p>
+          )}
+        </div>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+      </Link>
+      <button
+        type="button"
+        aria-label={deleteLabel}
+        onClick={onDelete}
+        className="shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
   );
 }
 
@@ -85,6 +107,12 @@ export default function ClientesPage() {
   useMockDBRefresh();
   const router = useRouter();
   const [tab, setTab] = useState<"customers" | "suppliers">("customers");
+  const [pendingDelete, setPendingDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const customers = getCustomers();
   const suppliers = getSuppliers();
   const debts = getDebts();
@@ -97,6 +125,40 @@ export default function ClientesPage() {
   ).length;
   const isCustomers = tab === "customers";
   const list = isCustomers ? customers : suppliers;
+  const kindLabel = isCustomers ? "cliente" : "proveedor";
+
+  async function handleDelete() {
+    if (!pendingDelete || deleting) return;
+
+    setDeleting(true);
+    setDeleteError(null);
+
+    try {
+      if (isCustomers) {
+        await deleteCustomer(pendingDelete.id);
+        const checkout = useCheckoutStore.getState();
+        if (checkout.customer?.id === pendingDelete.id) {
+          checkout.setCustomer(null);
+        }
+      } else {
+        await deleteSupplier(pendingDelete.id);
+        const checkout = useCheckoutStore.getState();
+        if (checkout.supplier?.id === pendingDelete.id) {
+          checkout.setSupplier(null);
+        }
+      }
+      setPendingDelete(null);
+    } catch (err) {
+      setDeleteError(
+        err instanceof Error
+          ? err.message
+          : `No se pudo eliminar el ${kindLabel}.`,
+      );
+      setPendingDelete(null);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <>
@@ -164,13 +226,45 @@ export default function ClientesPage() {
                           : `/opciones/clientes/proveedor/${item.id}`
                       }
                       tone={isCustomers ? "success" : "danger"}
+                      deleteLabel={`Eliminar ${kindLabel} ${item.name}`}
+                      onDelete={() => {
+                        setDeleteError(null);
+                        setPendingDelete({ id: item.id, name: item.name });
+                      }}
                     />
                   ))}
                 </div>
               )}
             </div>
+            {deleteError ? (
+              <p className="text-center text-xs text-destructive">{deleteError}</p>
+            ) : null}
         </section>
       </div>
+
+      <ConfirmDeleteModal
+        open={pendingDelete != null}
+        onClose={() => {
+          if (!deleting) setPendingDelete(null);
+        }}
+        onConfirm={() => void handleDelete()}
+        loading={deleting}
+        title={isCustomers ? "Eliminar cliente" : "Eliminar proveedor"}
+        confirmLabel={
+          isCustomers ? "Sí, eliminar cliente" : "Sí, eliminar proveedor"
+        }
+        description={
+          pendingDelete ? (
+            <>
+              ¿Eliminar{" "}
+              <span className="font-semibold text-card-foreground">
+                {pendingDelete.name}
+              </span>
+              ? Se quitará del directorio y no podrás recuperarlo.
+            </>
+          ) : null
+        }
+      />
 
       <Button
         type="button"

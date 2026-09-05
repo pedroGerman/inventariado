@@ -24,7 +24,9 @@ import {
   fetchRemoteCache,
   remoteAdjustStock,
   remoteDeleteCategory,
+  remoteDeleteCustomer,
   remoteDeleteProduct,
+  remoteDeleteSupplier,
   remoteNextOrderNumber,
   remoteNextPurchaseNumber,
   remoteSaveDebt,
@@ -300,6 +302,28 @@ export async function saveCustomer(customer: Customer): Promise<void> {
   notifyUpdate();
 }
 
+export async function deleteCustomer(id: string): Promise<void> {
+  if (!isMockMode()) {
+    await remoteDeleteCustomer(id);
+  }
+
+  const db = getCache();
+  db.customers = db.customers.filter((customer) => customer.id !== id);
+  db.orders = db.orders.map((order) =>
+    order.customer_id === id ? { ...order, customer_id: null } : order,
+  );
+  db.debts = db.debts.map((debt) =>
+    debt.customer_id === id ? { ...debt, customer_id: null } : debt,
+  );
+
+  if (isMockMode()) {
+    persistMock();
+    return;
+  }
+
+  notifyUpdate();
+}
+
 export async function saveSupplier(supplier: Supplier): Promise<void> {
   const db = getCache();
   const idx = db.suppliers.findIndex((s) => s.id === supplier.id);
@@ -312,6 +336,28 @@ export async function saveSupplier(supplier: Supplier): Promise<void> {
   }
 
   await remoteUpsertSupplier(supplier);
+  notifyUpdate();
+}
+
+export async function deleteSupplier(id: string): Promise<void> {
+  if (!isMockMode()) {
+    await remoteDeleteSupplier(id);
+  }
+
+  const db = getCache();
+  db.suppliers = db.suppliers.filter((supplier) => supplier.id !== id);
+  db.purchases = db.purchases.map((purchase) =>
+    purchase.supplier_id === id ? { ...purchase, supplier_id: null } : purchase,
+  );
+  db.debts = db.debts.map((debt) =>
+    debt.supplier_id === id ? { ...debt, supplier_id: null } : debt,
+  );
+
+  if (isMockMode()) {
+    persistMock();
+    return;
+  }
+
   notifyUpdate();
 }
 

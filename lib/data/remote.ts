@@ -222,6 +222,16 @@ export async function remoteUpsertSupplier(supplier: Supplier): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+export async function remoteDeleteCustomer(id: string): Promise<void> {
+  const { error } = await supabase().from("customers").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
+export async function remoteDeleteSupplier(id: string): Promise<void> {
+  const { error } = await supabase().from("suppliers").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function remoteUpsertCustomPaymentMethod(
   method: CustomPaymentMethod,
 ): Promise<void> {

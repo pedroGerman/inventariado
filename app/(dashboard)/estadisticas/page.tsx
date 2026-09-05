@@ -32,17 +32,15 @@ const PERIOD_LIST_PREVIEW = 5;
 
 function SummaryCard({
   title,
-  titleClass,
   rows,
 }: {
   title: string;
-  titleClass?: string;
-  rows: { label: string; value: string }[];
+  rows: { label: string; value: string; valueClass?: string }[];
 }) {
   return (
     <div className="flex flex-col gap-3 py-1">
       <div className="border- border-slate-100 px-0.5">
-        <h3 className={cn("text-sm font-semibold", titleClass)}>{title}</h3>
+        <h3 className="text-sm font-semibold">{title}</h3>
       </div>
       <div className="divide- flex flex-col gap-1.5">
         {rows.map((row) => (
@@ -51,7 +49,12 @@ function SummaryCard({
             className="flex items-center justify-between px-0.5"
           >
             <span className="text-sm text-slate-600">{row.label}</span>
-            <span className="text-sm shrink-0 font-medium tabular-nums">
+            <span
+              className={cn(
+                "text-sm shrink-0 font-medium tabular-nums",
+                row.valueClass,
+              )}
+            >
               {row.value}
             </span>
           </div>
@@ -294,6 +297,25 @@ export default function EstadisticasPage() {
                 {
                   label: "Por pagar",
                   value: formatCurrency(stats.pendingPay),
+                },
+              ]}
+            />
+
+            <SummaryCard
+              title="Ganancias"
+              rows={[
+                {
+                  label: "Total",
+                  value: formatCurrency(stats.profit),
+                  valueClass: stats.profit > 0 ? "text-primary" : undefined,
+                },
+                {
+                  label: "Cobrado",
+                  value: formatCurrency(stats.collected),
+                },
+                {
+                  label: "Gastado",
+                  value: formatCurrency(stats.spent),
                 },
               ]}
             />

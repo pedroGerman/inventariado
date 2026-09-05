@@ -1,10 +1,16 @@
-import type { Order, Product, Purchase } from "@/lib/types/database";
+import type { Debt, Order, Product, Purchase } from "@/lib/types/database";
 import { getDebts, getOrders, getProducts, getPurchases, getCustomers } from "@/lib/mock/db";
 import { isLowStock, isOutOfStock } from "@/lib/utils/stock";
 
 export type StatsPeriod = "day" | "week" | "month";
 
-export interface ConsolidatedStats {
+export interface RealizedProfit {
+  collected: number;
+  spent: number;
+  profit: number;
+}
+
+export interface ConsolidatedStats extends RealizedProfit {
   salesTotal: number;
   pendingCollect: number;
   purchasesTotal: number;
@@ -80,6 +86,44 @@ function inRangeDate(dateStr: string, start: Date, end: Date): boolean {
   return d >= start && d <= end;
 }
 
+export function getRealizedProfit(
+  orders: Pick<Order, "id" | "total">[],
+  purchases: Pick<Purchase, "id" | "total">[],
+  debts: Debt[],
+): RealizedProfit {
+  const remainingCollectByOrder = new Map<string, number>();
+  const remainingPayByPurchase = new Map<string, number>();
+
+  for (const debt of debts) {
+    if (debt.kind === "collect" && debt.order_id) {
+      remainingCollectByOrder.set(
+        debt.order_id,
+        (remainingCollectByOrder.get(debt.order_id) ?? 0) + debt.remaining,
+      );
+    }
+    if (debt.kind === "pay" && debt.purchase_id) {
+      remainingPayByPurchase.set(
+        debt.purchase_id,
+        (remainingPayByPurchase.get(debt.purchase_id) ?? 0) + debt.remaining,
+      );
+    }
+  }
+
+  const collected = orders.reduce(
+    (sum, order) =>
+      sum + Math.max(0, order.total - (remainingCollectByOrder.get(order.id) ?? 0)),
+    0,
+  );
+  const spent = purchases.reduce(
+    (sum, purchase) =>
+      sum +
+      Math.max(0, purchase.total - (remainingPayByPurchase.get(purchase.id) ?? 0)),
+    0,
+  );
+
+  return { collected, spent, profit: collected - spent };
+}
+
 export function getConsolidatedStats(
   period: StatsPeriod,
   offset: number,
@@ -118,6 +162,7 @@ export function getConsolidatedStats(
         : pendingCollect,
     purchasesTotal,
     pendingPay: offset === 0 ? pendingPay : pendingPay,
+    ...getRealizedProfit(orders, purchases, debts),
   };
 }
 
