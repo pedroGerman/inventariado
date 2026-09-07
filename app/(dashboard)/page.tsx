@@ -135,7 +135,7 @@ export default function DashboardPage() {
               label="Por cobrar"
               value={formatAmount(summary.pendingCollect, "pendingCollect")}
               valueClassName="text-warning"
-              sublabel="Pendiente"
+              sublabel={periodLabel}
               href="/deudas?tab=collect"
               concealable
               concealed={concealedMetrics.pendingCollect}
@@ -145,7 +145,7 @@ export default function DashboardPage() {
               icon={CalendarCheck}
               label="Por pagar"
               value={formatAmount(summary.pendingPay, "pendingPay")}
-              sublabel="Pendiente"
+              sublabel={periodLabel}
               href="/deudas?tab=pay"
               concealable
               concealed={concealedMetrics.pendingPay}
