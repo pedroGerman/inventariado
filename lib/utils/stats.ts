@@ -124,6 +124,33 @@ export function getRealizedProfit(
   return { collected, spent, profit: collected - spent };
 }
 
+export function getPeriodFinancials(
+  orders: Pick<Order, "id" | "total">[],
+  purchases: Pick<Purchase, "id" | "total">[],
+  debts: Debt[],
+): ConsolidatedStats {
+  const salesTotal = orders.reduce((sum, order) => sum + order.total, 0);
+  const purchasesTotal = purchases.reduce(
+    (sum, purchase) => sum + purchase.total,
+    0,
+  );
+  const { collected, spent, profit } = getRealizedProfit(
+    orders,
+    purchases,
+    debts,
+  );
+
+  return {
+    salesTotal,
+    purchasesTotal,
+    collected,
+    spent,
+    profit,
+    pendingCollect: Math.max(0, salesTotal - collected),
+    pendingPay: Math.max(0, purchasesTotal - spent),
+  };
+}
+
 export function getConsolidatedStats(
   period: StatsPeriod,
   offset: number,
@@ -139,31 +166,8 @@ export function getConsolidatedStats(
       p.status === "confirmed" &&
       (inRange(p.created_at, start, end) || inRangeDate(p.date, start, end)),
   );
-  const debts = getDebts();
 
-  const salesTotal = orders.reduce((s, o) => s + o.total, 0);
-  const purchasesTotal = purchases.reduce((s, p) => s + p.total, 0);
-
-  const collectDebts = debts.filter((d) => d.kind === "collect");
-  const payDebts = debts.filter((d) => d.kind === "pay");
-
-  const orderIds = new Set(orders.map((o) => o.id));
-  const pendingCollect = collectDebts
-    .filter((d) => (d.order_id && orderIds.has(d.order_id)) || offset === 0)
-    .reduce((s, d) => s + d.remaining, 0);
-
-  const pendingPay = payDebts.reduce((s, d) => s + d.remaining, 0);
-
-  return {
-    salesTotal,
-    pendingCollect:
-      offset === 0
-        ? collectDebts.reduce((s, d) => s + d.remaining, 0)
-        : pendingCollect,
-    purchasesTotal,
-    pendingPay: offset === 0 ? pendingPay : pendingPay,
-    ...getRealizedProfit(orders, purchases, debts),
-  };
+  return getPeriodFinancials(orders, purchases, getDebts());
 }
 
 export function getPeriodLabels(period: StatsPeriod): [string, string] {

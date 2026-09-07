@@ -2,7 +2,7 @@ import type { Product } from "@/lib/types/database";
 import { getDebts, getOrders, getProducts, getPurchases } from "@/lib/mock/db";
 import {
   getDateRange,
-  getRealizedProfit,
+  getPeriodFinancials,
   type ConsolidatedStats,
   type StatsPeriod,
 } from "@/lib/utils/stats";
@@ -243,16 +243,18 @@ export function getSalesSummaryForDashboardFilter(
     });
   }
 
-  const debts = getDebts();
-  const collectDebts = debts.filter((d) => d.kind === "collect");
-  const payDebts = debts.filter((d) => d.kind === "pay");
+  const { pendingCollect, pendingPay } = getPeriodFinancials(
+    orders,
+    getPurchasesForDashboardFilter(filter),
+    getDebts(),
+  );
 
   return {
     productsSold: productIds.size,
     unitsSold,
     salesTotal,
-    pendingCollect: collectDebts.reduce((sum, debt) => sum + debt.remaining, 0),
-    pendingPay: payDebts.reduce((sum, debt) => sum + debt.remaining, 0),
+    pendingCollect,
+    pendingPay,
   };
 }
 
@@ -332,29 +334,11 @@ export function getPurchasesForDashboardFilter(filter: DashboardPeriodFilter) {
 export function getConsolidatedStatsForDashboardFilter(
   filter: DashboardPeriodFilter,
 ): ConsolidatedStats {
-  const orders = getOrdersForDashboardFilter(filter);
-  const purchases = getPurchasesForDashboardFilter(filter);
-  const debts = getDebts();
-
-  const salesTotal = orders.reduce((sum, order) => sum + order.total, 0);
-  const purchasesTotal = purchases.reduce(
-    (sum, purchase) => sum + purchase.total,
-    0,
+  return getPeriodFinancials(
+    getOrdersForDashboardFilter(filter),
+    getPurchasesForDashboardFilter(filter),
+    getDebts(),
   );
-  const pendingCollect = debts
-    .filter((debt) => debt.kind === "collect")
-    .reduce((sum, debt) => sum + debt.remaining, 0);
-  const pendingPay = debts
-    .filter((debt) => debt.kind === "pay")
-    .reduce((sum, debt) => sum + debt.remaining, 0);
-
-  return {
-    salesTotal,
-    pendingCollect,
-    purchasesTotal,
-    pendingPay,
-    ...getRealizedProfit(orders, purchases, debts),
-  };
 }
 
 export { MONTHS_FULL_ES };
